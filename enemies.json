@@ -1,0 +1,16 @@
+{
+    "e0" : {
+        "name" : "Ranger",
+        "ai id" : "e0",
+        "HP" : 20,
+        "ATK" : 3,
+        "SPD" : 3
+    },
+    "e1" : {
+        "name" : "Scared",
+        "ai id" : "e1",
+        "HP" : 5,
+        "ATK" : 2,
+        "SPD" : 7
+    }
+}

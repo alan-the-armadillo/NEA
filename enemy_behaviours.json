@@ -1,0 +1,35 @@
+{
+    "e0" : [
+        "PSEQ", [
+            ["PSEL", [
+                ["CON", ["no damage"]],
+                ["ACT", ["wait", 50]]
+            ]],
+            ["PSEL", [
+                ["CON", ["distance to player >", 300]],
+                ["ACT", ["move from player", 2, 1]]
+            ]],
+            ["SEQ", [
+                ["ACT", ["attack", "ea0"
+                ]],
+                ["ACT", ["wait", 50]]
+            ]]
+        ]
+    ],
+    "e1" : [
+        "PSEQ", [
+            ["PSEL", [
+                ["CON", ["distance to player >", 400]],
+                ["ACT", ["move from player", 1, 1]]
+            ]],
+            ["SEQ", [
+                ["ACT", ["wait", 6]],
+                ["ACT", ["wander", 7, 0.3]]
+            ]]
+        ]
+    ],
+    "e2" : [
+        "ACT", ["wait", 10]
+    ]
+}
+

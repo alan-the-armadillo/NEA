@@ -1,0 +1,10 @@
+{
+    "stun":[
+        "SEL",
+        [
+            ["CON", ["no damage"]],
+            ["ACT", ["wait", 1]]
+        ]
+    ]
+}
+
