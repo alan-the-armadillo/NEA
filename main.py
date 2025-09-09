@@ -83,6 +83,8 @@ while running:
                 g.player.add_to_motion_vector([1,0])
             elif event.key == controls["left"]:
                 g.player.add_to_motion_vector([-1,0])
+            elif event.key == pygame.K_ESCAPE:
+                running = False
         elif event.type == pygame.KEYUP:
             if event.key == controls["down"]:
                 g.player.add_to_motion_vector([0,-1])
