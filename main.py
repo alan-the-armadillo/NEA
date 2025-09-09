@@ -64,7 +64,7 @@ behaviour_tree.GAME = g
 def get_player():
     return g.player
 
-with open("C:/Users/james/Documents/Python/NEA/controls.json", "r") as file:
+with open("controls.json", "r") as file:
     controls = json.load(file)
 
 last_update = time.time()
