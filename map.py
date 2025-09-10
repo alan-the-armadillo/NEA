@@ -16,11 +16,6 @@ class Map:
         #self.rooms[self.center[0]][self.center[1]] = StaircaseRoom(center, self.center, self.size)
 
     def create_room(self, position:Tuple[int, int], x_scale, y_scale):
-        print("Neighbors:")
-        print([[position[0]+v[0],position[1]+v[1]]
-                for v in Map.room_neighbor_vectors
-                if (0 <= position[0]+v[0] < self.size
-                    and 0 <= position[1]+v[1] < self.size)])
         new_room = Room(position, self.center, self.size, [self.rooms[position[0]+v[0]][position[1]+v[1]]
                                                             if (0 <= position[0]+v[0] < self.size
                                                                 and 0 <= position[1]+v[1] < self.size)
@@ -31,12 +26,6 @@ class Map:
         new_room.generate_hitboxes(x_scale, y_scale)
         new_room.generate_enemies(x_scale, y_scale)###################################
         self.rooms[position[0]][position[1]] = new_room
-        print("Rooms:")
-        for j in range(self.size):
-            for i in range(self.size):
-                print("|R" if isinstance(self.rooms[i][j], Room) else "| ", end="")
-            print("|")
-        print()
     
     def load_room(self, position:Tuple[int, int], x_scale, y_scale):
         """Creates the room at position if it has not been generated.
@@ -111,8 +100,6 @@ class Room:
                 self.doors[i] = True
                 available_doors.remove(i)
                 num_doors -= 1
-        
-            print(["|D|" if d else "| |" for d in self.doors], random_num_doors, required_doors, absent_doors)
     
     @staticmethod
     def get_neighbors(grid_size_x, grid_size_y, x, y):
@@ -181,13 +168,6 @@ class Room:
         self.grid_size_y = grid_size_y
         self.grid_size = [self.grid_size_x, self.grid_size_y]
 
-#######################################################################################
-        for r in range(grid_size_y):
-            for column in grid:
-                print(f"\033[93m◼\033[0m" if column[r] else "◼", end="  ")
-            print()
-        print(f"Width: {width}\tHeight: {height}\tTop-left: {top_left}")
-
     def generate_doors(self):
         """Picks live cells to put the room's doors in. Doors will not generate in the same cell."""
 
@@ -221,7 +201,6 @@ class Room:
             doors[0] = choice(door_options)
 
         self.doors = doors
-        print(self.doors)
 
 
     #Method for generating colliders that merges colliders together if adjacent
