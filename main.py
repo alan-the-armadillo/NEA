@@ -11,8 +11,7 @@ class Game:
     def __init__(self):
         self.map = Map(5)
         self.current_pos = [self.map.center[0], self.map.center[1]]
-        print(self.current_pos)
-        self.renderer = Renderer([16*102, 9*102])
+        self.renderer = Renderer("fullscreen")#([16*102, 9*102])
         #Temporary section to set player's position to within the room
         self.test_run()
         self.player = Player([0,0])
@@ -35,7 +34,7 @@ class Game:
         if type(interactor) == DoorInteractor:
             #Change room
             self.current_pos, curr_room, new_door = self.map.move_room(self.current_pos, interactor, 100,100)
-            g.renderer.debug_render_room(curr_room.wall_colliders, curr_room.door_interactors)
+            g.renderer.debug_render_room(curr_room.wall_colliders, curr_room.door_interactors, self.map, self.current_pos)
             #Snap player to door
             door_rect = new_door.rect
             x,y = door_rect.center
@@ -52,7 +51,7 @@ class Game:
             
     def test_run(self) -> Room:
         r = self.map.load_room(self.current_pos, 100, 100)
-        self.renderer.debug_render_room(r.wall_colliders, r.door_interactors)
+        self.renderer.debug_render_room(r.wall_colliders, r.door_interactors, self.map, self.current_pos)
         return r
 
 g = Game()
@@ -83,6 +82,8 @@ while running:
                 g.player.add_to_motion_vector([1,0])
             elif event.key == controls["left"]:
                 g.player.add_to_motion_vector([-1,0])
+            elif event.key == pygame.K_ESCAPE:
+                running = False
         elif event.type == pygame.KEYUP:
             if event.key == controls["down"]:
                 g.player.add_to_motion_vector([0,-1])
@@ -102,9 +103,8 @@ while running:
     g.player.move()
     Enemy.behave_all()
 
-    Enemy.update_all()    
-    
-    g.renderer.debug_render_frame(g.player.collider, g.player.interactor)
+    Enemy.update_all()
+
+    g.renderer.debug_render_frame(g.player.collider, g.player.interactor, clock.get_fps(), g.map)
     
     clock.tick(100)
-    pygame.display.set_caption(str(round(clock.get_fps())))
