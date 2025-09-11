@@ -1,0 +1,42 @@
+{
+    "l0": {
+        "type": "Limb",
+        "name": "Basic Torso",
+        "stat boosts": [],
+        "slot": "Torso"
+    },
+    "l1": {
+        "type": "Limb",
+        "name": "Basic Head",
+        "stat boosts": [],
+        "slot": "Head"
+    },
+    "l2": {
+        "type": "Limb",
+        "name": "Basic Hand",
+        "stat boosts": [],
+        "slot": "Hand"
+    },
+    "l3": {
+        "type": "Limb",
+        "name": "Basic Foot",
+        "stat boosts": [],
+        "slot": "Foot"
+    },
+    "w0": {
+        "type": "Weapon",
+        "name": "Old Sword",
+        "stat boosts": [],
+        "base damage": 3.0,
+        "weapon type": "Melee",
+        "slot size": "1"
+    },
+    "w1": {
+        "type": "Weapon",
+        "name": "Old Bow",
+        "stat boosts": [],
+        "base damage": 7.0,
+        "weapon type": "Ranged",
+        "slot size": "2"
+    }
+}
