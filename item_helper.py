@@ -1,7 +1,9 @@
 import json
 
 
-print("This program allows you as a user to add items to the item json file.\n\
+print("\n\nThis program allows you as a user to add items to the item json file.\n\
+This json file is a database to store information on all items, and may be\n\
+referenced in other json files such as loot tables.\n\
 If a question asks for an answer form a set of options, respond with the relevant number.\n")
 
 def input_options(start:str, options:list, end:str):

@@ -87,7 +87,7 @@ class Renderer:
         for enemy in Enemy.all:
             pygame.draw.rect(self.world_fg, [255,20,50], enemy.collider.rect)
         self.display.blit(self.world_fg, self.center - player_collider.rect.center)
-        pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size))
+        pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
         pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
         if player_interactor.closest_interactor:
             self.display.blit(font.render(player_interactor.closest_interactor.__class__.name, True, "yellow"), self.center - player_collider.rect.center + player_interactor.closest_interactor.rect.topleft)

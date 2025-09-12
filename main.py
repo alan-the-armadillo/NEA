@@ -9,7 +9,7 @@ from hitbox import *
 
 class Game:
     def __init__(self):
-        self.map = Map(7)
+        self.map = Map(5)
         self.current_pos = [self.map.center[0], self.map.center[1]]
         self.renderer = Renderer("fullscreen")#([16*102, 9*102])
         #Temporary section to set player's position to within the room

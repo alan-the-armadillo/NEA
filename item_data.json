@@ -38,5 +38,13 @@
         "base damage": 7.0,
         "weapon type": "Ranged",
         "slot size": "2"
+    },
+    "w2": {
+        "type": "Weapon",
+        "name": "Old Wand",
+        "stat boosts": [],
+        "base damage": 10.0,
+        "weapon type": "Magic",
+        "slot size": "1"
     }
 }

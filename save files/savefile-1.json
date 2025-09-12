@@ -1,0 +1,17 @@
+{
+    "player":{
+        "stats" : {
+            "HP" : 100,
+            "ATK" : 0,
+            "SPD" : 5
+        },
+        "inventory" : {
+            "head":null,
+            "torso":null,
+            "lhand":null,
+            "rhand":null,
+            "lfoot":null,
+            "rfoot":null
+        }
+    }
+}
