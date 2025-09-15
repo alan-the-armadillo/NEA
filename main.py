@@ -105,6 +105,6 @@ while running:
 
     Enemy.update_all()
 
-    g.renderer.debug_render_frame(g.player.collider, g.player.interactor, clock.get_fps(), g.map)
+    g.renderer.debug_render_frame(g.player.collider, g.player.interactor, clock.get_fps())
     
     clock.tick(100)

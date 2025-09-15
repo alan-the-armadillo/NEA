@@ -81,18 +81,26 @@ class Renderer:
 
 
 
-    def debug_render_frame(self, player_collider:EntityCollider, player_interactor:PlayerInteractor, fps:float, map:Map):
+    def debug_render_frame(self, player_collider:EntityCollider, player_interactor:PlayerInteractor, fps:float):
+        #Reset the frame
         self.display.fill(0)
+        #Draw the background
         self.world_fg.blit(self.world, [0,0])
+        #Draw the enemies
         for enemy in Enemy.all:
             pygame.draw.rect(self.world_fg, [255,20,50], enemy.collider.rect)
-        self.display.blit(self.world_fg, self.center - player_collider.rect.center)
-        pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
-        pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
+        #Highlight closest interactor
         if player_interactor.closest_interactor:
-            self.display.blit(font.render(player_interactor.closest_interactor.__class__.name, True, "yellow"), self.center - player_collider.rect.center + player_interactor.closest_interactor.rect.topleft)
+            rect = player_interactor.closest_interactor.rect
+            pygame.draw.rect(self.world_fg, [255,255,255], pygame.Rect([rect.left-5, rect.top-5], [rect.width+10, rect.height+10]), 5)
+        self.display.blit(self.world_fg, self.center - player_collider.rect.center)
+        #Draw player interactor
+        pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
+        #Draw player collider
+        pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
+        #Draw the map and fps
         self.debug_render_overlay(fps)
         self.display.blit(self.overlay, [0,0])
-        #self.display.blit(self.world, [0,0])
-        #pygame.draw.rect(self.display, [200, 130, 220], player_collider.rect)
+        #Update the frame
         pygame.display.update()
+
