@@ -55,7 +55,6 @@ class EntityCollider(Collider):
         return self.rect.center
 
 class DoorInteractor(Interactor):
-    name = "door"
     def __init__(self, pos, long_dim, short_dim, wall):
         """
         Arguments:

@@ -3,5 +3,7 @@
     "up":119,
     "left":97,
     "down":115,
-    "interact":101
+    "interact":101,
+    "esc":27,
+    "prtscr":35
 }

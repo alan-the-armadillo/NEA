@@ -1,4 +1,6 @@
 from typing import Tuple
+import os
+from datetime import datetime
 
 import pygame
 import pygame.font
@@ -12,7 +14,9 @@ from map import Map
 class Renderer:
     def __init__(self, window_size:Tuple[int, int]|str):
         if window_size == "fullscreen":
-            self.display = pygame.display.set_mode([0,0], pygame.FULLSCREEN)
+            pygame.display.init()
+            size = pygame.display.get_desktop_sizes()[0]
+            self.display = pygame.display.set_mode(size, pygame.NOFRAME)
         elif type(window_size) == str:
             raise ValueError (f"Display size command '{window_size}' not recognised.")
         else:
@@ -25,6 +29,19 @@ class Renderer:
         self.map = pygame.Surface([size[1]/3, size[1]/3])
         self.overlay = pygame.Surface(size, pygame.SRCALPHA)
         self.center = pygame.Vector2(size[0]/2, size[1]/2)
+
+        self.screenshot_life = 0
+        self.screenshot_clock = pygame.time.Clock()
+    
+    def screenshot(self):
+        if not os.path.isdir("screenshots"):
+            os.mkdir("screenshots")
+        now = datetime.now()
+        screenshot_name = "screenshots/"+str(datetime.date(now))+"_"+str(now.hour)+"."+str(now.minute)+"."+str(now.second)+".png"
+        pygame.image.save(self.display, screenshot_name)
+        self.screenshot_life = 3
+        self.screenshot_clock.tick() 
+        
     
     def debug_render_map(self, map:Map, current_pos:list):
         """Draws the map, including doors and highlighting the room the player is currently in."""
@@ -76,9 +93,13 @@ class Renderer:
     def debug_render_overlay(self, fps:float):
         self.overlay.fill(0)
         self.overlay.blit(font.render(str(round(fps)), True, "white"), [100,100])
-        w,h = self.overlay.get_size()
+        w = self.overlay.get_width()
         self.overlay.blit(self.map, [w-self.map.get_width(),0])
 
+        if self.screenshot_life > 0:
+            self.overlay.blit(font.render("Screenshot taken", True, [255,255,255]), [0 , self.overlay.get_height()-font.get_height()])
+            self.screenshot_life -= self.screenshot_clock.get_time()/1000
+            self.screenshot_clock.tick()
 
 
     def debug_render_frame(self, player_collider:EntityCollider, player_interactor:PlayerInteractor, fps:float):
@@ -98,7 +119,7 @@ class Renderer:
         pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
         #Draw player collider
         pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
-        #Draw the map and fps
+        #Draw the map, fps and screenshot acknowledgement
         self.debug_render_overlay(fps)
         self.display.blit(self.overlay, [0,0])
         #Update the frame
