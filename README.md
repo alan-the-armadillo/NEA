@@ -12,6 +12,11 @@ Grafted is a dungeon-crawler roguelike game in which you play as a robot defeati
 Enemies will drop loot such as weapons which you may equip, and may even drop their limbs.
 You can graft these limbs in place of your own, developing your robot further and further.
 
+## Controls
+ - wasd : up, left, down and right respectively
+ - e : interact
+ - \# : screenshot
+
 ## Current progress
 This project is a work-in-progress, with some core functionality not yet implemented. Planned features include:
 
