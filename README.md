@@ -16,6 +16,7 @@ You can graft these limbs in place of your own, developing your robot further an
  - wasd : up, left, down and right respectively
  - e : interact
  - \# : screenshot (screenshots saved to screenshots folder within program folder)
+ - escape : close program
 
 ## Current progress
 This project is a work-in-progress, with some core functionality not yet implemented. Planned features include:
