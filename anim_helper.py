@@ -7,6 +7,7 @@ font = pygame.font.SysFont("consolas", 20)
 display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.NOFRAME)
 
 SCALE = 10
+num_skin_layers = 3
 
 class Sprite():
     all:list["Sprite"] = []
@@ -26,10 +27,10 @@ class Sprite():
     def get_rect(self):
         return self.img.get_rect(topleft=self.pos)
 
-    def draw(self, surface:pygame.Surface):
+    def draw(self, surface:pygame.Surface, overlay:pygame.Surface):
         surface.blit(self.img, self.pos)
         if self.text and render_text:
-            surface.blit(self.text, self.pos)
+            overlay.blit(self.text, self.pos)
     
     def draw_highlight(self, surface, width):
         sprite_rect = self.img.get_rect()
@@ -54,22 +55,62 @@ left_hand_sprite = Sprite("left hand", "debug_hand.png", [400, 0], text="LH")
 right_hand_sprite = Sprite("right hand", "debug_hand.png", [400, 50], text="RH")
 
 
+frames = []
+current_frame:pygame.Surface = None
+
+def create_frame():
+    global frames, current_frame
+    if current_frame:
+        old_frame = current_frame.copy()
+        frames = [old_frame] + frames
+    current_frame = pygame.Surface(display.get_size(), pygame.SRCALPHA)
+
+def onion_skin(surface:pygame.Surface):
+    select_frames = frames[:num_skin_layers]
+    for i, frame in enumerate(select_frames):
+        frame_copy = frame.copy()
+        frame_copy.set_alpha(90-60*i/num_skin_layers)
+        surface.blit(frame_copy, [0,0])
+
+create_frame()
+overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 drag_sprite = None
 displacement = None
 render_text = True
+num_skin_layers = 1
+
+anim_playing = False
+editing = False
+
 
 clock = pygame.time.Clock()
 running = True
 #Mainloop
 while running:
-    display.fill([60, 150, 200])
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_DELETE:
                 running = False
             elif event.key == pygame.K_s:
                 render_text = not render_text
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            elif event.key == pygame.K_RETURN:
+                create_frame()
+            elif event.key == pygame.K_SPACE:
+                if anim_playing:
+                    anim_playing = False
+                    editing = False
+                else:
+                    anim_playing = True
+                    editing = False
+                    frame_num = len(frames)-1
+            elif event.key == pygame.K_TAB:
+                if editing:
+                    editing = False
+                    anim_playing = False
+                else:
+                    editing = True
+                    anim_playing = False
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, Sprite.all))
             if possible_sprites != []:
                 drag_sprite = possible_sprites[0]
@@ -79,22 +120,47 @@ while running:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             drag_sprite = None
             last_mouse_pos = None
+        elif event.type == pygame.MOUSEWHEEL:
+            num_skin_layers = min(len(frames) ,max(0, num_skin_layers+event.y))
 
-    mouse_pos = pygame.mouse.get_pos()        
-    if drag_sprite:
-        drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
+    if anim_playing and len(frames) != 0:
+        display.fill([60, 150, 200])
+        display.blit(frames[frame_num], [0,0])
+        pygame.display.update()
+        frame_num = (frame_num - 1) % len(frames)
+        clock.tick(12)
     
-    shortest_distance = 10000
-    closest = None
-    for sprite in Sprite.all:
-        sprite.highlighted = False
-        sprite.draw(display)
-        dist_to_mouse = sprite.distance_to(mouse_pos)
-        if dist_to_mouse < shortest_distance or closest == None:
-            shortest_distance = dist_to_mouse
-            closest = sprite
-    if closest.get_rect().collidepoint(mouse_pos):
-        closest.draw_highlight(display, int(SCALE/2))
+    elif editing:
+        pass
 
-    pygame.display.update()
-    clock.tick(100)
+    else:
+        display.fill([60, 150, 200])
+        current_frame.fill(0)
+        overlay.fill(0)
+
+        mouse_pos = pygame.mouse.get_pos()        
+        if drag_sprite:
+            drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
+        
+        shortest_distance = 10000
+        closest = None
+        for sprite in Sprite.all:
+            sprite.highlighted = False
+            sprite.draw(current_frame, overlay)
+            dist_to_mouse = sprite.distance_to(mouse_pos)
+            if dist_to_mouse < shortest_distance or closest == None:
+                shortest_distance = dist_to_mouse
+                closest = sprite
+        if closest.get_rect().collidepoint(mouse_pos):
+            closest.draw_highlight(overlay, int(SCALE/2))
+
+        display.blit(current_frame, [0,0])
+        onion_skin(display)
+        display.blit(overlay, [0,0])
+        pygame.display.update()
+        clock.tick(100)
+
+
+"""Need to allow user to edit frames. Use left and right arrow keys to change frame.
+Will likely need to create a frame class that stores copies of the original images. This may make it better for blitting onion skins, since only the images need to be blitted.
+"""
