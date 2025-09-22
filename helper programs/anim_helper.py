@@ -9,7 +9,12 @@ display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.
 SCALE = 10
 num_skin_layers = 3
 
-class Sprite():
+#DEVELOP FURTHER
+class Frame:
+    def __init__(self, objects):
+        self.objects = objects
+
+class Sprite:
     all:list["Sprite"] = []
     def __init__(self, name, img_name, pos, text=None):
         Sprite.all.append(self)
@@ -163,4 +168,6 @@ while running:
 
 """Need to allow user to edit frames. Use left and right arrow keys to change frame.
 Will likely need to create a frame class that stores copies of the original images. This may make it better for blitting onion skins, since only the images need to be blitted.
+Need to allow for rotation.
+Need to allow for saving and loading of animations.
 """
