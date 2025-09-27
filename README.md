@@ -21,12 +21,14 @@ You can graft these limbs in place of your own, developing your robot further an
 ## Current progress
 This project is a work-in-progress, with some core functionality not yet implemented. Planned features include:
 
+- animation system
+- items
 - ability to attack
 - enemy drops
 - inventory
 - level progression
 - save file system
-- graphics
+- finalised graphics
 
 There are some helper programs in the helper programs folder.
 The **control setter** is to show the respective integer for each pygame input.
