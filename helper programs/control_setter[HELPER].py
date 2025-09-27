@@ -7,7 +7,7 @@ size = 100
 
 font = pygame.font.SysFont("consolas", size)
 
-display = pygame.display.set_mode([1000,size])
+display = pygame.display.set_mode([1500,size])
 
 running = True
 while running:
@@ -15,7 +15,8 @@ while running:
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             display.fill(0)
             key = str(event.key)
-            display.blit(font.render(key, True, "white"),[display.get_width()/2 - len(key)*size/4, display.get_height()/2 - size/2])
+            name = pygame.key.name(int(key))
+            display.blit(font.render(name+" "+key, True, "white"),[display.get_width()/2 - (len(key)+len(name))*size/4, display.get_height()/2 - size/2])
             if event.type == pygame.KEYUP:
                 print(key)
             pygame.display.update()

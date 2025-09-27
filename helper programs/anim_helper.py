@@ -9,11 +9,6 @@ display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.
 SCALE = 10
 num_skin_layers = 3
 
-#DEVELOP FURTHER
-class Frame:
-    def __init__(self, objects):
-        self.objects = objects
-
 class Sprite:
     all:list["Sprite"] = []
     def __init__(self, name, img_name, pos, text=None):
@@ -125,8 +120,12 @@ while running:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             drag_sprite = None
             last_mouse_pos = None
-        elif event.type == pygame.MOUSEWHEEL:
-            num_skin_layers = min(len(frames) ,max(0, num_skin_layers+event.y))
+        if event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN)):
+            if event.type == pygame.MOUSEWHEEL:
+                difference = event.y
+            else:
+                difference = 1 if event.key == pygame.K_UP else -1
+            num_skin_layers = min(len(frames) ,max(0, num_skin_layers+difference))
 
     if anim_playing and len(frames) != 0:
         display.fill([60, 150, 200])
