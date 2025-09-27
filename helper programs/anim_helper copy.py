@@ -1,16 +1,72 @@
 import pygame
 import os
 import json
+import time
 from copy import copy
-pygame.display.init()
 pygame.font.init()
 font = pygame.font.SysFont("consolas", 20)
 
 #Borderless fullscreen
-display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.NOFRAME)
+def make_display():
+    global display
+    pygame.display.init()
+    display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.NOFRAME)
 
+make_display()
+
+filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anim_data.json")
+
+#By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 10
-num_skin_layers = 3
+
+def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
+    """Use to write data to a json file.
+    Arguments:
+        obj : the actual object you want to save
+        fp : the file opened that will be written to
+        indent : how many spaces per indent
+        inline_level : at this level and further in the structure, data will be written to one line"""
+    def inline(o):
+        if isinstance(o, list):
+            return "[" + ", ".join([inline(value) for value in o]) + "]"
+        elif isinstance(o, dict):
+            return "{" + ", ".join([f"{json.dumps(key)}: {inline(value)}" for key,value in o.items()]) + "}"
+        return json.dumps(o)
+    def write(o, depth):
+        curr_indent = ' ' * indent*depth
+        #If a dictionary
+        if isinstance(o, dict):
+            #If at end of depth, one line
+            if depth >= inline_level:
+                fp.write(inline(o))
+                return
+            #Otherwise, write it in multiple lines
+            fp.write("{\n")
+            for i, (key,value) in enumerate(o.items()):
+                fp.write(" " * indent*(depth+1) + f"{json.dumps(key)}: ")
+                write(value, depth + 1)
+                if i != len(o.items()) -1:
+                    fp.write(",\n")
+            fp.write("\n" + curr_indent + "}")
+        #If a list
+        elif isinstance(o, list):
+            #If at end of depth and full of non dict/lists, one line
+            if depth >= inline_level or all([not isinstance(x, (dict, list)) for x in o]):
+                fp.write(inline(o))
+                return
+            #Otherwise, write it in multiple lines
+            fp.write("[\n")
+            for i, value in enumerate(o):
+                fp.write(" " * indent*(depth+1))
+                write(value, depth + 1)
+                if i != len(o) -1:
+                    fp.write(",\n")
+            fp.write("\n" + curr_indent + "]")
+        else:
+            fp.write(json.dumps(o))
+    
+    write(obj, 0)
+    fp.write("\n")
 
 class Frame:
     def __init__(self, surface:pygame.Surface, objects:dict):
@@ -72,15 +128,24 @@ def draw_text_overlay(surface:pygame.Surface):
     for objects in current_frame.objects:
         if objects.text:
             surface.blit(objects.text, objects.pos)
-            
+
+
+sprites = {
+    "head" : "debug_head.png",
+    "torso" : "debug_torso.png",
+    "left foot" : "debug_foot.png",
+    "right foot" : "debug_foot.png",
+    "left hand" : "debug_hand.png",
+    "right hand" : "debug_hand.png"
+}
 
 #Store sprite, pos, rect
-objects = {Sprite("debug_head.png", [0,0]) : "head", 
-           Sprite("debug_torso.png", [100,0]) : "torso", 
-           Sprite("debug_foot.png", [300,0], text="LF") : "left foot", 
-           Sprite("debug_foot.png", [300,50], text="RF") : "right foot", 
-           Sprite("debug_hand.png", [400, 0], text="LH") : "left hand", 
-           Sprite("debug_hand.png", [400, 50], text="RH") : "right hand"}
+objects = {Sprite(sprites["torso"], [0,0]) : "torso",
+           Sprite(sprites["head"], [200,0]) : "head",  
+           Sprite(sprites["left foot"], [300,0], text="LF") : "left foot", 
+           Sprite(sprites["right foot"], [300,50], text="RF") : "right foot", 
+           Sprite(sprites["left hand"], [400, 0], text="LH") : "left hand", 
+           Sprite(sprites["right hand"], [400, 50], text="RH") : "right hand"}
 
 
 frames:list[Frame] = []
@@ -89,7 +154,7 @@ mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 drag_sprite = None
 displacement = None
 render_text = True
-num_skin_layers = 1
+num_skin_layers = 3
 editing_frame_index = None
 
 anim_playing = False
@@ -97,14 +162,14 @@ editing = False
 sort_out_editing_fixes = False
 
 mode_colors = {
-    "animate" : [60, 150, 200],
-    "edit" : [250, 130, 150],
-    "play" : [240, 120, 240]
+    "animate" : [80, 170, 120],
+    "edit" : [120, 80, 170],
+    "play" : [170, 120, 80]
 }
 
 mode_color = mode_colors["animate"]
 
-current_frame:Frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects)
+current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects)
 
 def create_frame():
     global frames, current_frame
@@ -118,9 +183,74 @@ def onion_skin(surface:pygame.Surface, current_index=0):
     for i, frame in enumerate(select_frames):
         frame.draw(surface, 90-60*i/num_skin_layers)
 
+def set_mode(mode_name):
+    global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index
+    if mode_name == "playing":
+        anim_playing = True
+        editing = False
+        frame_num = len(frames)-1
+        mode_color = mode_colors["play"]
+    elif mode_name == "editing":
+        frames = [current_frame] + frames
+        editing = True
+        anim_playing = False
+        mode_color = mode_colors["edit"]
+        editing_frame_index = 0
+    elif mode_name == "animating":
+        editing = False
+        anim_playing = False
+        mode_color = mode_colors["animate"]
+
+def load_anim():
+    def load_sprites(frame_data:dict):
+        objects = {}
+        width, height = display.get_width()/2, display.get_height()/2
+        for sprite_data in list(frame_data.items()):
+            name, data = sprite_data
+            relative_pos = data["pos"]
+            real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
+            objects.update({Sprite(sprites[name], real_pos):name})
+        return objects
+
+    global frames, current_frame
+    print("\nWARNING:  LOADING A NEW ANIM NOW WILL ERASE THE CURRET ANIMATION IF NOT SAVED.")
+    with open(filename, "r") as file:
+        data = json.load(file)
+    found = False
+    while not found:
+        anim_name = input("Enter the name of the anim to load or 'END' to end:  ")
+        if anim_name not in data and anim_name != "END":
+            print(f"anim name '{anim_name}' not found. Try again")
+        elif anim_name == "END":
+            print("Returning to current animation in 3 seconds.")
+            time.sleep(3)
+            make_display()
+            return
+        else:
+            affirmed = False
+            while not affirmed:
+                affirmation = input(f"Are you sure you want to load '{anim_name}'? [y,n] If your current animation is unsaved, it will be erased.  ")
+                if affirmation == "y":
+                    make_display()
+                    affirmed = True
+                    frames = []
+                    anim_data = data[anim_name]
+                    frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(frame_data)) for frame_data in anim_data]
+                    current_frame = frames[0]
+                    frames = frames[1:]
+                    print("Loaded new anim.")
+                    return
+                elif affirmation == "n":
+                    affirmed = True
+                else:
+                    print("Input was neither 'y' or 'n'.")
+
+                        
+
 
 clock = pygame.time.Clock()
 running = True
+saving = False
 #Mainloop
 while running:
     if sort_out_editing_fixes and not editing:
@@ -136,25 +266,14 @@ while running:
                 create_frame()
             elif event.key == pygame.K_SPACE:
                 if anim_playing:
-                    anim_playing = False
-                    editing = False
-                    mode_color = mode_colors["animate"]
+                    set_mode("animating")
                 else:
-                    anim_playing = True
-                    editing = False
-                    frame_num = len(frames)-1
-                    mode_color = mode_colors["play"]
+                    set_mode("playing")
             elif event.key == pygame.K_TAB:
                 if editing:
-                    editing = False
-                    anim_playing = False
-                    mode_color = mode_colors["animate"]
+                    set_mode("animating")
                 else:
-                    frames = [current_frame] + frames
-                    editing = True
-                    anim_playing = False
-                    mode_color = mode_colors["edit"]
-                    editing_frame_index = 0
+                    set_mode("editing")
             elif event.key == pygame.K_LEFT and editing:
                 editing_frame_index = min(editing_frame_index+1, len(frames)-1)
                 current_frame = frames[editing_frame_index]
@@ -181,6 +300,12 @@ while running:
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LCTRL] and keys[pygame.K_s]:
         running = False
+        saving = True
+        continue
+    elif keys[pygame.K_LCTRL] and keys[pygame.K_l]:
+        pygame.display.quit()
+        load_anim()
+        set_mode("animating")
         continue
 
     if anim_playing and len(frames) != 0:
@@ -198,6 +323,7 @@ while running:
             drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
             current_frame.render()
         
+        #Highlight
         shortest_distance = 10000
         closest = None
         current_frame.draw(display)
@@ -210,10 +336,12 @@ while running:
         if closest.get_rect().collidepoint(mouse_pos):
             closest.draw_highlight(overlay, int(SCALE/2))
 
+        #Onion skinning
         if editing:
             onion_skin(display, editing_frame_index)
         else:
             onion_skin(display)
+        #Overlay
         if render_text:
             draw_text_overlay(overlay)
         display.blit(overlay, [0,0])
@@ -221,55 +349,54 @@ while running:
     pygame.display.update()
 
 ###### SAVE DATA
-
-if frames[0] != current_frame:
-    frames = [current_frame] + frames
-
 pygame.display.quit()
 
-save_data = []
-for i, frame in enumerate(frames):
-    frame_data = {}
-    torso = list(frame.objects.keys())[list(frame.objects.values()).index("torso")]
-    for objects in frame.objects.items():
-        obj_data = {objects[1]: {
-            "pos" : [(objects[0].pos[0]-torso.pos[0])/SCALE, (objects[0].pos[1]-torso.pos[1])/SCALE]
-        }}
-        frame_data.update(obj_data)
-    save_data.append(frame_data)
+if saving:
+    if frames[0] != current_frame:
+        frames = [current_frame] + frames
 
-##### MAKE IT NOT INDENT THE FINAL LAYERS OF THE DATA TO SHORTEN THE FILE DOWN A BIT
+    save_data = []
+    for i, frame in enumerate(frames):
+        frame_data = {}
+        torso = list(frame.objects.keys())[list(frame.objects.values()).index("torso")]
+        for objects in frame.objects.items():
+            obj_data = {objects[1]: {
+                "pos" : [(objects[0].pos[0]-torso.pos[0])/SCALE, (objects[0].pos[1]-torso.pos[1])/SCALE]
+            }}
+            frame_data.update(obj_data)
+        save_data.append(frame_data)
 
-found = False
-while not found:
-    anim_name = input("Name of animation: ")
-    affirmed = False
-    while not affirmed:
-        affirmation = input(f"Are you sure you want to name it '{anim_name}'? [y,n] ").lower()
-        if affirmation == "y":
-            affirmed = True
-            found = True
-        elif affirmation == "n":
-            affirmed = True
-            found = False
-        else:
-            print(f"Input must be 'y' or 'n', not {affirmation}.")
+    ##### MAKE IT NOT INDENT THE FINAL LAYERS OF THE DATA TO SHORTEN THE FILE DOWN A BIT
 
-save_data = {anim_name:save_data}
+    found = False
+    while not found:
+        anim_name = input("Name of animation: ")
+        affirmed = False
+        while not affirmed:
+            affirmation = input(f"Are you sure you want to name it '{anim_name}'? [y,n] ").lower()
+            if affirmation == "y":
+                affirmed = True
+                found = True
+            elif affirmation == "n":
+                affirmed = True
+                found = False
+            else:
+                print(f"Input must be 'y' or 'n', not {affirmation}.")
 
-dir = os.path.dirname(os.path.abspath(__file__))
+    save_data = {anim_name:save_data}
 
-try:
-    with open(os.path.join(dir, "anim_data.json"), "r") as file:
-        data = json.load(file)
-        data.update(save_data)
-        save_data = data
-except:
-    pass
-with open(os.path.join(dir, "anim_data.json"), "w") as file:
-    json.dump(save_data, file, indent=4)
-"""Need to allow user to edit frames. Use left and right arrow keys to change frame.
-Will likely need to create a frame class that stores copies of the original images. This may make it better for blitting onion skins, since only the images need to be blitted.
-Need to allow for rotation.
+    try:
+        with open(filename, "r") as file:
+            data = json.load(file)
+            data.update(save_data)
+            save_data = data
+    except:
+        pass
+
+    with open(filename, "w") as file:
+        custom_dump(save_data, file)
+
+
+"""Need to allow for rotation.
 Need to allow for saving and loading of animations.
 """
