@@ -93,9 +93,10 @@ class Frame:
 
 
 class Sprite:
-    def __init__(self, img_name, pos, text=None):
+    def __init__(self, img_name, pos, rot, text=None):
         self.img = pygame.transform.scale_by(pygame.image.load("sprites/"+img_name), SCALE)
         self.pos = pos
+        self.rot = rot
         self.text = text
         if self.text:
             self.text = font.render(self.text, True, [255,255,255], [0,0,0])
@@ -108,7 +109,7 @@ class Sprite:
         return self.img.get_rect(topleft=self.pos)
 
     def draw(self, surface:pygame.Surface):
-        surface.blit(self.img, self.pos)
+        surface.blit(pygame.transform.rotate(self.img, self.rot), self.pos)
     
     def draw_highlight(self, surface, width):
         sprite_rect = self.img.get_rect()
@@ -140,12 +141,12 @@ sprites = {
 }
 
 #Store sprite, pos, rect
-objects = {Sprite(sprites["torso"], [0,0]) : "torso",
-           Sprite(sprites["head"], [200,0]) : "head",  
-           Sprite(sprites["left foot"], [300,0], text="LF") : "left foot", 
-           Sprite(sprites["right foot"], [300,50], text="RF") : "right foot", 
-           Sprite(sprites["left hand"], [400, 0], text="LH") : "left hand", 
-           Sprite(sprites["right hand"], [400, 50], text="RH") : "right hand"}
+objects = {Sprite(sprites["torso"], [0,0], 0) : "torso",
+           Sprite(sprites["head"], [200,0], 0) : "head",  
+           Sprite(sprites["left foot"], [300,0], 0, text="LF") : "left foot", 
+           Sprite(sprites["right foot"], [300,50], 0, text="RF") : "right foot", 
+           Sprite(sprites["left hand"], [400, 0], 0, text="LH") : "left hand", 
+           Sprite(sprites["right hand"], [400, 50], 0, text="RH") : "right hand"}
 
 
 frames:list[Frame] = []
@@ -153,6 +154,8 @@ overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 drag_sprite = None
 displacement = None
+rotating_sprite = None
+rot_change = None
 render_text = True
 num_skin_layers = 3
 editing_frame_index = None
@@ -274,6 +277,19 @@ while running:
                     set_mode("animating")
                 else:
                     set_mode("editing")
+            elif event.key == pygame.K_r:
+                if rotating_sprite:
+                    rotating_sprite = None
+                    rot_change = None
+                else:
+                    possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
+                    if possible_sprites != []:
+                        rotating_sprite = possible_sprites[0]
+                        rot_change = 0
+            elif event.key == pygame.K_ESCAPE and rotating_sprite:
+                rotating_sprite.rot -= rot_change
+                rotating_sprite = None
+                rot_change = None
             elif event.key == pygame.K_LEFT and editing:
                 editing_frame_index = min(editing_frame_index+1, len(frames)-1)
                 current_frame = frames[editing_frame_index]
@@ -322,7 +338,11 @@ while running:
         if drag_sprite:
             drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
             current_frame.render()
-        
+        elif rotating_sprite:
+            rotating_sprite.rot = 0
+            rot_change = (pygame.Vector2(rotating_sprite.pos)+pygame.Vector2(rotating_sprite.img.get_size())/2).angle_to(pygame.Vector2(mouse_pos))
+            rotating_sprite.rot += rot_change
+            current_frame.render()
         #Highlight
         shortest_distance = 10000
         closest = None
@@ -345,6 +365,11 @@ while running:
         if render_text:
             draw_text_overlay(overlay)
         display.blit(overlay, [0,0])
+        try:
+            pygame.draw.circle(display, "white", pygame.Vector2(rotating_sprite.pos)+pygame.Vector2(rotating_sprite.img.get_size())/2, 10, 3)
+            display.blit(font.render(str(rotating_sprite.rot), False, "white"), [0,0])
+        except:
+            pass
         clock.tick(100)
     pygame.display.update()
 
@@ -398,5 +423,5 @@ if saving:
 
 
 """Need to allow for rotation.
-Need to allow for saving and loading of animations.
+Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
 """
