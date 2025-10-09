@@ -16,7 +16,7 @@ def make_display():
 
 make_display()
 
-filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anim_data.json")
+filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anim_data_refined.json")
 
 #By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 10
@@ -163,6 +163,7 @@ objects = {Sprite(sprites["torso"], [0,0], 0) : "torso",
 frames:list[Frame] = []
 overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
+show_first_frame = False
 drag_sprite = None
 displacement = None
 rotating_sprite = None
@@ -197,6 +198,8 @@ def onion_skin(surface:pygame.Surface, current_index=0):
     select_frames = frames[current_index:current_index+num_skin_layers]
     for i, frame in enumerate(select_frames):
         frame.draw(surface, 90-60*i/num_skin_layers)
+    if show_first_frame and len(frames) > 0:
+        frames[-1].draw(surface, 80)
 
 def set_mode(mode_name):
     global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index
@@ -217,14 +220,15 @@ def set_mode(mode_name):
         mode_color = mode_colors["animate"]
 
 def load_anim():
-    def load_sprites(frame_data:dict):
+    def load_sprites(anim_data:dict, frame_num:int):
         objects = {}
         width, height = display.get_width()/2, display.get_height()/2
-        for sprite_data in list(frame_data.items()):
+        for sprite_data in list(anim_data.items()):
             name, data = sprite_data
-            relative_pos = data["pos"]
+            frame_data = data[frame_num]
+            relative_pos = frame_data["pos"]
             real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
-            rotation = data["rot"]
+            rotation = frame_data["rot"]
             objects.update({Sprite(sprites[name], real_pos, rotation):name})
         return objects
 
@@ -251,7 +255,7 @@ def load_anim():
                     affirmed = True
                     frames = []
                     anim_data = data[anim_name]
-                    frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(frame_data)) for frame_data in anim_data]
+                    frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(anim_data, i)) for i in range(len(list(anim_data.values())[0]))][::-1]
                     current_frame = frames[0]
                     frames = frames[1:]
                     print("Loaded new anim.")
@@ -324,6 +328,8 @@ while running:
             elif event.key == pygame.K_RIGHT and editing:
                 editing_frame_index = max(editing_frame_index-1, 0)
                 current_frame = frames[editing_frame_index]
+            elif event.key == pygame.K_f and not anim_playing:
+                show_first_frame = not show_first_frame
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
             if possible_sprites != []:
@@ -403,17 +409,22 @@ if saving:
     if frames[0] != current_frame:
         frames = [current_frame] + frames
 
-    save_data = []
+    save_data = {}
     for i, frame in enumerate(frames):
-        frame_data = {}
         torso = list(frame.objects.keys())[list(frame.objects.values()).index("torso")]
         for objects in frame.objects.items():
-            obj_data = {objects[1]: {
+            obj_data = {
                 "pos" : [(objects[0].pos[0]-torso.pos[0])/SCALE, (objects[0].pos[1]-torso.pos[1])/SCALE],
                 "rot" : objects[0].rot
-            }}
-            frame_data.update(obj_data)
-        save_data.append(frame_data)
+            }
+            if objects[1] in save_data:
+                save_data[objects[1]].append(obj_data)
+            else:
+                save_data.update({objects[1]:[obj_data]})
+    
+    for obj_name in list(save_data.keys()):
+        save_data[obj_name] = save_data[obj_name][::-1]
+
 
     try:
         with open(filename, "r") as file:
@@ -451,5 +462,6 @@ if saving:
         custom_dump(save_data, file)
 
 
-"""Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
+"""Need to fix load anim.
+Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
 """
