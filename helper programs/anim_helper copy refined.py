@@ -453,6 +453,20 @@ if saving:
             else:
                 print(f"Input must be 'y' or 'n', not {affirmation}.")
 
+    removed = []
+    for obj in save_data:
+        valid = False
+        while not valid:
+            keep = input(f"Do you want to save data for {obj} [y,n]?  ").lower()
+            if keep == "y":
+                valid = True
+            elif keep == "n":
+                removed.append(obj)
+                valid = True
+            else:
+                print("Input must be 'y' or 'n'.")
+
+    [save_data.pop(obj) for obj in removed]
     save_data = {anim_name:save_data}
 
     data.update(save_data)
@@ -462,6 +476,5 @@ if saving:
         custom_dump(save_data, file)
 
 
-"""Need to fix load anim.
-Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
+"""Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
 """
