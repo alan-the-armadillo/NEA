@@ -16,7 +16,8 @@ def make_display():
 
 make_display()
 
-filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anim_data_refined.json")
+dir = os.getcwd()
+filename = os.path.join(dir, "anim_data_refined.json")
 
 #By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 10
@@ -189,10 +190,10 @@ current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objec
 
 def create_frame():
     global frames, current_frame
+    #Copies the current frame to the frame list.
     if current_frame:
-        old_frame = current_frame
-        frames = [old_frame] + frames
-    current_frame = Frame.copy(old_frame)
+        copy_frame = Frame.copy(current_frame)
+        frames = [copy_frame] + frames
 
 def onion_skin(surface:pygame.Surface, current_index=0):
     select_frames = frames[current_index:current_index+num_skin_layers]
@@ -276,6 +277,7 @@ def get_rot(pos1, pos2):
 clock = pygame.time.Clock()
 running = True
 saving = False
+
 #Mainloop
 while running:
     if sort_out_editing_fixes and not editing:
@@ -476,5 +478,14 @@ if saving:
         custom_dump(save_data, file)
 
 
-"""Need to allow for specifying which limbs are to be saved in motion, to allow for modular animation.
+"""NEED TO IMPLEMENT ORDER OF ITEMS, SUCH THAT THE USER CAN PICK WHICH ITEM GOES ON TOP.
+This will make for better rendering that makes physical sense (e.g. one hand is not rendered in front of another).
+You should at this point also make a weapon object, or allow for a weapon object. The user should specify the name of the object, as well as supplying an image file.
+You may want to implement weapon snapping, so the user can specify which limb the weapon should snap to to make animation easier.
+You could, at some point, make extra anim objects like smear frames but this should be a final touch.
+
+Possibility for other helpful changes such as objects retaining motion through frames, but would be hard to implement now.
+Need to update documentation (include the two other variants of this code if useful).
+Implement this animation system into the rest of the game:
+ - have the animations referenced wherever necessary in weapon files, but also specified somewhere else for constant anims e.g. walking
 """

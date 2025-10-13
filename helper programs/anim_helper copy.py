@@ -16,7 +16,8 @@ def make_display():
 
 make_display()
 
-filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anim_data.json")
+dir = os.getcwd()
+filename = os.path.join(dir, "anim_data.json")
 
 #By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 10
