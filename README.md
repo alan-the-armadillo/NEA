@@ -34,7 +34,7 @@ There are some helper programs in the helper programs folder.
 The **control setter** is to show the respective integer for each pygame input.
 The **item helper**, while still in development, makes adding items to the main json file much easier.
 The **anim helper**, while still in development, makes creating animations easier.
-The helper programs will not be in the final program folder as user modding is not a goal of my game, and have not been made for easy user experience for others.
+The helper programs will not be in the final program folder as user modding is not a goal of my game, and have just been made for my convencience.
 
 ## Requirements
 
