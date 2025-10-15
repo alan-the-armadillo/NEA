@@ -189,13 +189,14 @@ mode_color = mode_colors["animate"]
 current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects)
 
 def create_frame():
-    global frames, current_frame
-    #Copies the current frame to the frame list.
-    if current_frame:
-        copy_frame = Frame.copy(current_frame)
-        frames = [copy_frame] + frames
+    """Copies the current frame to the frame list.
+    """
+    copy_frame = Frame.copy(current_frame)
+    frames = [copy_frame] + frames
 
 def onion_skin(surface:pygame.Surface, current_index=0):
+    """Draws onion skin layers onto surface.
+    """
     select_frames = frames[current_index:current_index+num_skin_layers]
     for i, frame in enumerate(select_frames):
         frame.draw(surface, 90-60*i/num_skin_layers)
@@ -203,6 +204,9 @@ def onion_skin(surface:pygame.Surface, current_index=0):
         frames[-1].draw(surface, 80)
 
 def set_mode(mode_name):
+    """Apply relevant variable changes for mode selection.
+    Mode names include 'playing', 'editing' and 'animating'.
+    """
     global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index
     if mode_name == "playing":
         anim_playing = True
@@ -219,9 +223,14 @@ def set_mode(mode_name):
         editing = False
         anim_playing = False
         mode_color = mode_colors["animate"]
+    else:
+        raise ValueError (f"Mode name '{mode_name}' not recognised.")
 
 def load_anim():
+    """Validates user input for animation name, then loads this animation from the JSON file.
+    """
     def load_sprites(anim_data:dict, frame_num:int):
+        """Loads all sprite data for a specific frame."""
         objects = {}
         width, height = display.get_width()/2, display.get_height()/2
         for sprite_data in list(anim_data.items()):
@@ -268,7 +277,8 @@ def load_anim():
 
                         
 def get_rot(pos1, pos2):
-    """Angle from pos1 to pos2."""
+    """Angle from pos1 to pos2.
+    """
     centre = pygame.Vector2(pos1)
     return -math.degrees(math.atan2((centre.y-pos2[1]),(centre.x-pos2[0])))
 
@@ -280,27 +290,37 @@ saving = False
 
 #Mainloop
 while running:
+    #Get pressed keys
+    keys = pygame.key.get_pressed()
+    #Pop top item off stack after making editing fixes
     if sort_out_editing_fixes and not editing:
         current_frame = frames[0]
         frames = frames[1:]
+    #USER INPUT
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
+            #End program
             if event.key == pygame.K_DELETE:
                 running = False
+            #Show/hide text
             elif event.key == pygame.K_s:
                 render_text = not render_text
+            #Create a frame (animating mode)
             elif event.key == pygame.K_RETURN and not editing and not anim_playing:
                 create_frame()
+            #Play animation/stop animation
             elif event.key == pygame.K_SPACE:
                 if anim_playing:
                     set_mode("animating")
                 else:
                     set_mode("playing")
+            #Editing mode/exit editing mode
             elif event.key == pygame.K_TAB:
                 if editing:
                     set_mode("animating")
                 else:
                     set_mode("editing")
+            #Complete rotation / rotate sprite
             elif event.key == pygame.K_r:
                 if rotating_sprite:
                     rotating_sprite = None
@@ -312,26 +332,35 @@ while running:
                         rotating_sprite = possible_sprites[0]
                         rot_change = get_rot(rotating_sprite.get_rect().center, mouse_pos)
                         rot_start = rotating_sprite.rot
+            #Cancel rotation
             elif event.key == pygame.K_ESCAPE and rotating_sprite:
                 rotating_sprite.rot = rot_start
                 current_frame.render()
                 rotating_sprite = None
                 rot_change = None
                 rot_start = None
+            #Reset rotation
             elif event.key == pygame.K_BACKSPACE and rotating_sprite:
                 rotating_sprite.rot = 0
                 current_frame.render()
                 rotating_sprite = None
                 rot_change = None
                 rot_start = None
+            #Go back 1 frame (edit mode)
             elif event.key == pygame.K_LEFT and editing:
                 editing_frame_index = min(editing_frame_index+1, len(frames)-1)
                 current_frame = frames[editing_frame_index]
+            #Go forward 1 frame (edit mode)
             elif event.key == pygame.K_RIGHT and editing:
                 editing_frame_index = max(editing_frame_index-1, 0)
                 current_frame = frames[editing_frame_index]
+            #Show first frame as a translucent overlay
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
+            #Change layer order
+            elif event.key in [pygame.K_UP, pygame.K_DOWN] and pygame.K_LSHIFT not in keys: #############  <-------------------------
+                pass
+        #Start to drag sprite (if clicked on a sprite)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
             if possible_sprites != []:
@@ -339,17 +368,18 @@ while running:
                 sx,sy = drag_sprite.pos
                 mx, my = mouse_pos
                 displacement = [sx-mx, sy-my]
+        #Stop dragging sprite
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             drag_sprite = None
             last_mouse_pos = None
-        if event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN)):
+        #Change onion skin amount
+        elif event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN) and keys[pygame.K_LSHIFT]):
             if event.type == pygame.MOUSEWHEEL:
                 difference = event.y
             else:
                 difference = 1 if event.key == pygame.K_UP else -1
             num_skin_layers = min(len(frames) ,max(0, num_skin_layers+difference))
 
-    keys = pygame.key.get_pressed()
     if keys[pygame.K_LCTRL] and keys[pygame.K_s]:
         running = False
         saving = True
