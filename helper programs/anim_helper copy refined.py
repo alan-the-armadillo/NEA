@@ -23,12 +23,12 @@ filename = os.path.join(dir, "anim_data_refined.json")
 SCALE = 10
 
 def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
-    """Use to write data to a json file.
+    """Use to write data to a json file with a custom formatting.
     Arguments:
         obj : the actual object you want to save
         fp : the file opened that will be written to
         indent : how many spaces per indent
-        inline_level : at this level and further in the structure, data will be written to one line"""
+        inline_level : at this level and further in the structure, data will be written in one line"""
     def inline(o):
         if isinstance(o, list):
             return "[" + ", ".join([inline(value) for value in o]) + "]"
@@ -191,6 +191,7 @@ current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objec
 def create_frame():
     """Copies the current frame to the frame list.
     """
+    global frames
     copy_frame = Frame.copy(current_frame)
     frames = [copy_frame] + frames
 
@@ -207,22 +208,29 @@ def set_mode(mode_name):
     """Apply relevant variable changes for mode selection.
     Mode names include 'playing', 'editing' and 'animating'.
     """
-    global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index
+    global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index, fps, current_frame
+    #If no longer editing
+    if editing and mode_name != "editing":
+        current_frame = frames[0]
+        frames = frames[1:]
     if mode_name == "playing":
         anim_playing = True
         editing = False
         frame_num = len(frames)-1
         mode_color = mode_colors["play"]
+        fps = 12
     elif mode_name == "editing":
         frames = [current_frame] + frames
         editing = True
         anim_playing = False
         mode_color = mode_colors["edit"]
         editing_frame_index = 0
+        fps = 100
     elif mode_name == "animating":
         editing = False
         anim_playing = False
         mode_color = mode_colors["animate"]
+        fps = 100
     else:
         raise ValueError (f"Mode name '{mode_name}' not recognised.")
 
@@ -282,11 +290,19 @@ def get_rot(pos1, pos2):
     centre = pygame.Vector2(pos1)
     return -math.degrees(math.atan2((centre.y-pos2[1]),(centre.x-pos2[0])))
 
-
+def blit_frame_num(surface, color):
+    if anim_playing:
+        text = f"{len(frames)-frame_num}/{len(frames)+1}"
+    elif editing:
+        text = f"{len(frames)-editing_frame_index}/{len(frames)}"
+    else:
+        text = f"{len(frames)+1}/{len(frames)+1}"
+    surface.blit(font.render(text, True, color), [0,0])
 
 clock = pygame.time.Clock()
 running = True
 saving = False
+fps = 100
 
 #Mainloop
 while running:
@@ -359,7 +375,13 @@ while running:
                 show_first_frame = not show_first_frame
             #Change layer order
             elif event.key in [pygame.K_UP, pygame.K_DOWN] and pygame.K_LSHIFT not in keys: #############  <-------------------------
-                pass
+                possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
+                if possible_sprites != []:
+                    selected_sprite = possible_sprites[0]
+                    pass
+                    """Need to make it so that sprites are put in a specific order.
+                    Then need to add to saving and loading to maintain this order in save data.
+                    """
         #Start to drag sprite (if clicked on a sprite)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
@@ -394,16 +416,17 @@ while running:
         display.fill(mode_color)
         frames[frame_num].draw(display)
         frame_num = (frame_num - 1) % len(frames)
-        clock.tick(12)
 
     else:
         display.fill(mode_color)
         overlay.fill(0)
 
-        mouse_pos = pygame.mouse.get_pos()        
+        mouse_pos = pygame.mouse.get_pos()
+        #Drag object if mouse button is being held down
         if drag_sprite:
             drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
             current_frame.render()
+        #Undo last rotation, then find angle between object and mouse_po
         elif rotating_sprite:
             rotating_sprite.rot -= rot_change
             rot_change = get_rot(rotating_sprite.get_rect().center, mouse_pos)
@@ -431,7 +454,9 @@ while running:
         if render_text:
             draw_text_overlay(overlay)
         display.blit(overlay, [0,0])
-        clock.tick(100)
+    
+    blit_frame_num(display, "white")    
+    clock.tick(fps)
     pygame.display.update()
 
 ###### SAVE DATA
@@ -440,7 +465,7 @@ pygame.display.quit()
 if saving:
     if frames[0] != current_frame:
         frames = [current_frame] + frames
-
+    #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
     for i, frame in enumerate(frames):
         torso = list(frame.objects.keys())[list(frame.objects.values()).index("torso")]
@@ -453,7 +478,7 @@ if saving:
                 save_data[objects[1]].append(obj_data)
             else:
                 save_data.update({objects[1]:[obj_data]})
-    
+    #Reverse the list to put it in 'correct' order (first frame listed = first frame of animation)
     for obj_name in list(save_data.keys()):
         save_data[obj_name] = save_data[obj_name][::-1]
 
@@ -464,6 +489,7 @@ if saving:
     except:
         data = {}
 
+    #Ask uder for animation name
     found = False
     while not found:
         anim_name = input("Name of animation: ")
@@ -473,7 +499,7 @@ if saving:
             if affirmation == "y":
                 affirmed = True
                 if anim_name in data:
-                    affirmation = input(f"There already exists an animation name '{anim_name}'. Enter 'y' to override and save.").lower()
+                    affirmation = input(f"There already exists an animation named '{anim_name}'. Enter 'y' to override and save.").lower()
                     if affirmation == "y":
                         data.pop(anim_name)
                         found = True
@@ -485,6 +511,7 @@ if saving:
             else:
                 print(f"Input must be 'y' or 'n', not {affirmation}.")
 
+    #Ask user for modules to not save
     removed = []
     for obj in save_data:
         valid = False
@@ -498,12 +525,15 @@ if saving:
             else:
                 print("Input must be 'y' or 'n'.")
 
+    #Removes unwanted modules from save data
     [save_data.pop(obj) for obj in removed]
     save_data = {anim_name:save_data}
 
+    #Add new data to old data
     data.update(save_data)
     save_data = data
 
+    #Save data to file
     with open(filename, "w") as file:
         custom_dump(save_data, file)
 
