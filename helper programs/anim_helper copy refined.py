@@ -72,15 +72,15 @@ def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
     fp.write("\n")
 
 class Frame:
-    def __init__(self, surface:pygame.Surface, objects:dict):
+    def __init__(self, surface:pygame.Surface, objects:list):
         self.surface = surface
-        self.objects:dict[Sprite] = objects
+        self.objects:list[Sprite] = objects
         self.opacity = 255
         self.render()
     @staticmethod
     def copy(frame:"Frame"):
         surface = frame.surface.copy()
-        objects = {copy(key):copy(value) for key,value in frame.objects.items()}
+        objects = [copy(objects) for objects in frame.objects]
         return Frame(surface, objects)
 
     def render(self):
@@ -96,7 +96,8 @@ class Frame:
 
 
 class Sprite:
-    def __init__(self, img_name, pos, rot, text=None):
+    def __init__(self, name, img_name, pos, rot, text=None):
+        self.name = name
         self.img = pygame.transform.scale_by(pygame.image.load("sprites/"+img_name), SCALE)
         self.pos = pos
         self.rot = rot
@@ -153,12 +154,12 @@ sprites = {
 }
 
 #Store sprite, pos, rect
-objects = {Sprite(sprites["torso"], [0,0], 0) : "torso",
-           Sprite(sprites["head"], [200,0], 0) : "head",  
-           Sprite(sprites["left foot"], [300,0], 0, text="LF") : "left foot", 
-           Sprite(sprites["right foot"], [300,50], 0, text="RF") : "right foot", 
-           Sprite(sprites["left hand"], [400, 0], 0, text="LH") : "left hand", 
-           Sprite(sprites["right hand"], [400, 50], 0, text="RH") : "right hand"}
+objects = [Sprite("torso", sprites["torso"], [0,0], 0),
+           Sprite("head", sprites["head"], [200,0], 0),  
+           Sprite("left foot", sprites["left foot"], [300,0], 0, text="LF"), 
+           Sprite("right foot", sprites["right foot"], [300,50], 0, text="RF"), 
+           Sprite("left hand", sprites["left hand"], [400, 0], 0, text="LH"), 
+           Sprite("right hand", sprites["right hand"], [400, 50], 0, text="RH")]
 
 
 frames:list[Frame] = []
@@ -239,7 +240,7 @@ def load_anim():
     """
     def load_sprites(anim_data:dict, frame_num:int):
         """Loads all sprite data for a specific frame."""
-        objects = {}
+        objects = [None for _ in range(len(anim_data))]
         width, height = display.get_width()/2, display.get_height()/2
         for sprite_data in list(anim_data.items()):
             name, data = sprite_data
@@ -247,7 +248,8 @@ def load_anim():
             relative_pos = frame_data["pos"]
             real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
             rotation = frame_data["rot"]
-            objects.update({Sprite(sprites[name], real_pos, rotation):name})
+            index = frame_data["seq"]
+            objects[index] = Sprite(name, sprites[name], real_pos, rotation)
         return objects
 
     global frames, current_frame
@@ -374,16 +376,17 @@ while running:
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
             #Change layer order
-            elif event.key in [pygame.K_UP, pygame.K_DOWN] and pygame.K_LSHIFT not in keys: #############  <-------------------------
+            elif event.key in [pygame.K_UP, pygame.K_DOWN] and pygame.K_LSHIFT not in keys:
                 possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
                 if possible_sprites != []:
                     selected_sprite = possible_sprites[0]
-                    pass
-                    """Need to make it so that sprites are put in a specific order.
-                    Then need to add to saving and loading to maintain this order in save data.
-                    """
+                    index = current_frame.objects.index(selected_sprite)
+                    if not(event.key == pygame.K_UP and index == len(current_frame.objects)-1 or event.key == pygame.K_DOWN and index == 0):
+                        current_frame.objects.remove(selected_sprite)
+                        current_frame.objects.insert(index + (1 if event.key == pygame.K_UP else -1), selected_sprite)
+                        current_frame.render()
         #Start to drag sprite (if clicked on a sprite)
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
             if possible_sprites != []:
                 drag_sprite = possible_sprites[0]
@@ -391,11 +394,11 @@ while running:
                 mx, my = mouse_pos
                 displacement = [sx-mx, sy-my]
         #Stop dragging sprite
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             drag_sprite = None
             last_mouse_pos = None
         #Change onion skin amount
-        elif event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN) and keys[pygame.K_LSHIFT]):
+        if event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN) and keys[pygame.K_LSHIFT]):
             if event.type == pygame.MOUSEWHEEL:
                 difference = event.y
             else:
@@ -468,16 +471,17 @@ if saving:
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
     for i, frame in enumerate(frames):
-        torso = list(frame.objects.keys())[list(frame.objects.values()).index("torso")]
-        for objects in frame.objects.items():
+        torso = list(filter(lambda o: o.name == "torso",frame.objects))[0]
+        for j, objects in enumerate(frame.objects):
             obj_data = {
-                "pos" : [(objects[0].pos[0]-torso.pos[0])/SCALE, (objects[0].pos[1]-torso.pos[1])/SCALE],
-                "rot" : objects[0].rot
+                "pos" : [(objects.pos[0]-torso.pos[0])/SCALE, (objects.pos[1]-torso.pos[1])/SCALE],
+                "rot" : objects.rot,
+                "seq" : j
             }
-            if objects[1] in save_data:
-                save_data[objects[1]].append(obj_data)
+            if objects.name in save_data:
+                save_data[objects.name].append(obj_data)
             else:
-                save_data.update({objects[1]:[obj_data]})
+                save_data.update({objects.name:[obj_data]})
     #Reverse the list to put it in 'correct' order (first frame listed = first frame of animation)
     for obj_name in list(save_data.keys()):
         save_data[obj_name] = save_data[obj_name][::-1]
@@ -489,7 +493,7 @@ if saving:
     except:
         data = {}
 
-    #Ask uder for animation name
+    #Ask user for animation name
     found = False
     while not found:
         anim_name = input("Name of animation: ")
