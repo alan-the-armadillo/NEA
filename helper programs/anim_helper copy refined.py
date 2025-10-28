@@ -96,14 +96,13 @@ class Frame:
 
 
 class Sprite:
-    def __init__(self, name, img_name, pos, rot, text=None):
+    def __init__(self, name, img_name, pos, rot):
         self.name = name
         self.img = pygame.transform.scale_by(pygame.image.load("sprites/"+img_name), SCALE)
         self.pos = pos
         self.rot = rot
-        self.text = text
-        if self.text:
-            self.text = font.render(self.text, True, [255,255,255], [0,0,0])
+        #text used to help user differentiate modules by initialising the name
+        self.text = font.render("".join([char.upper() for i,char in enumerate(name) if i == 0 or name[i-1] == " "]), True, [255,255,255], [0,0,0])
         sprite_rect = self.img.get_rect()
         self.width, self.height = sprite_rect.size
         self.hw, self.hh = self.width/2, self.height/2
@@ -156,10 +155,10 @@ sprites = {
 #Store sprite, pos, rect
 objects = [Sprite("torso", sprites["torso"], [0,0], 0),
            Sprite("head", sprites["head"], [200,0], 0),  
-           Sprite("left foot", sprites["left foot"], [300,0], 0, text="LF"), 
-           Sprite("right foot", sprites["right foot"], [300,50], 0, text="RF"), 
-           Sprite("left hand", sprites["left hand"], [400, 0], 0, text="LH"), 
-           Sprite("right hand", sprites["right hand"], [400, 50], 0, text="RH")]
+           Sprite("left foot", sprites["left foot"], [300,0], 0), 
+           Sprite("right foot", sprites["right foot"], [300,50], 0), 
+           Sprite("left hand", sprites["left hand"], [400, 0], 0), 
+           Sprite("right hand", sprites["right hand"], [400, 50], 0)]
 
 
 frames:list[Frame] = []
@@ -301,6 +300,87 @@ def blit_frame_num(surface, color):
         text = f"{len(frames)+1}/{len(frames)+1}"
     surface.blit(font.render(text, True, color), [0,0])
 
+def save():
+    global frames, current_frame
+    try:
+        with open(filename, "r") as file:
+            data = json.load(file)
+    except:
+        data = {}
+
+    #Ask user for animation name
+    found = False
+    while not found:
+        anim_name = input("Name of animation: ")
+        affirmed = False
+        while not affirmed:
+            affirmation = input(f"Are you sure you want to name it '{anim_name}'? [y,n] ").lower()
+            if affirmation == "y":
+                affirmed = True
+                if anim_name in data:
+                    affirmation = input(f"There already exists an animation named '{anim_name}'. Enter 'y' to override and save.").lower()
+                    if affirmation == "y":
+                        data.pop(anim_name)
+                        found = True
+                else:
+                    found = True
+            elif affirmation == "n":
+                affirmed = True
+                found = False
+            else:
+                print(f"Input must be 'y' or 'n', not {affirmation}.")
+
+    #Ask user for modules to not save
+    removed = []
+    for obj in sprites:
+        valid = False
+        while not valid:
+            keep = input(f"Do you want to save data for {obj} [y,n]?  ").lower()
+            if keep == "y":
+                valid = True
+            elif keep == "n":
+                removed.append(obj)
+                valid = True
+            else:
+                print("Input must be 'y' or 'n'.")
+
+    if frames[0] != current_frame:
+        frames = [current_frame] + frames
+        take_off_frame = True
+    else:
+        take_off_frame = False
+    #Format frame data (ie lists of sprite data) into full anim data
+    save_data = {}
+    for frame in frames:
+        torso = list(filter(lambda o: o.name == "torso",frame.objects))[0]
+        #Loop through objects while filtering out any removed objects
+        for j, objects in enumerate(list(filter(lambda o: o.name not in removed, frame.objects))):
+            obj_data = {
+                "pos" : [(objects.pos[0]-torso.pos[0])/SCALE, (objects.pos[1]-torso.pos[1])/SCALE],
+                "rot" : objects.rot,
+                "seq" : j
+            }
+            if objects.name in save_data:
+                save_data[objects.name].append(obj_data)
+            else:
+                save_data.update({objects.name:[obj_data]})
+    #Reverse the list to put it in 'correct' order (first frame listed = first frame of animation)
+    for obj_name in list(save_data.keys()):
+        save_data[obj_name] = save_data[obj_name][::-1]
+
+    save_data = {anim_name:save_data}
+
+    #Add new data to old data
+    data.update(save_data)
+    save_data = data
+
+    #Save data to file
+    with open(filename, "w") as file:
+        custom_dump(save_data, file)
+    
+    if take_off_frame:
+        frames = frames[1:]
+
 clock = pygame.time.Clock()
 running = True
 saving = False
@@ -405,10 +485,13 @@ while running:
                 difference = 1 if event.key == pygame.K_UP else -1
             num_skin_layers = min(len(frames) ,max(0, num_skin_layers+difference))
 
+    #Save
     if keys[pygame.K_LCTRL] and keys[pygame.K_s]:
-        running = False
-        saving = True
+        pygame.display.quit()
+        save()
+        make_display()
         continue
+    #Load
     elif keys[pygame.K_LCTRL] and keys[pygame.K_l]:
         pygame.display.quit()
         load_anim()
@@ -462,88 +545,10 @@ while running:
     clock.tick(fps)
     pygame.display.update()
 
-###### SAVE DATA
 pygame.display.quit()
-
-if saving:
-    if frames[0] != current_frame:
-        frames = [current_frame] + frames
-    #Format frame data (ie lists of sprite data) into full anim data
-    save_data = {}
-    for i, frame in enumerate(frames):
-        torso = list(filter(lambda o: o.name == "torso",frame.objects))[0]
-        for j, objects in enumerate(frame.objects):
-            obj_data = {
-                "pos" : [(objects.pos[0]-torso.pos[0])/SCALE, (objects.pos[1]-torso.pos[1])/SCALE],
-                "rot" : objects.rot,
-                "seq" : j
-            }
-            if objects.name in save_data:
-                save_data[objects.name].append(obj_data)
-            else:
-                save_data.update({objects.name:[obj_data]})
-    #Reverse the list to put it in 'correct' order (first frame listed = first frame of animation)
-    for obj_name in list(save_data.keys()):
-        save_data[obj_name] = save_data[obj_name][::-1]
-
-
-    try:
-        with open(filename, "r") as file:
-            data = json.load(file)
-    except:
-        data = {}
-
-    #Ask user for animation name
-    found = False
-    while not found:
-        anim_name = input("Name of animation: ")
-        affirmed = False
-        while not affirmed:
-            affirmation = input(f"Are you sure you want to name it '{anim_name}'? [y,n] ").lower()
-            if affirmation == "y":
-                affirmed = True
-                if anim_name in data:
-                    affirmation = input(f"There already exists an animation named '{anim_name}'. Enter 'y' to override and save.").lower()
-                    if affirmation == "y":
-                        data.pop(anim_name)
-                        found = True
-                else:
-                    found = True
-            elif affirmation == "n":
-                affirmed = True
-                found = False
-            else:
-                print(f"Input must be 'y' or 'n', not {affirmation}.")
-
-    #Ask user for modules to not save
-    removed = []
-    for obj in save_data:
-        valid = False
-        while not valid:
-            keep = input(f"Do you want to save data for {obj} [y,n]?  ").lower()
-            if keep == "y":
-                valid = True
-            elif keep == "n":
-                removed.append(obj)
-                valid = True
-            else:
-                print("Input must be 'y' or 'n'.")
-
-    #Removes unwanted modules from save data
-    [save_data.pop(obj) for obj in removed]
-    save_data = {anim_name:save_data}
-
-    #Add new data to old data
-    data.update(save_data)
-    save_data = data
-
-    #Save data to file
-    with open(filename, "w") as file:
-        custom_dump(save_data, file)
 
 
 """NEED TO IMPLEMENT ORDER OF ITEMS, SUCH THAT THE USER CAN PICK WHICH ITEM GOES ON TOP.
-This will make for better rendering that makes physical sense (e.g. one hand is not rendered in front of another).
 You should at this point also make a weapon object, or allow for a weapon object. The user should specify the name of the object, as well as supplying an image file.
 You may want to implement weapon snapping, so the user can specify which limb the weapon should snap to to make animation easier.
 You could, at some point, make extra anim objects like smear frames but this should be a final touch.
