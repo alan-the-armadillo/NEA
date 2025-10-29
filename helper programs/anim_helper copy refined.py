@@ -82,6 +82,44 @@ class Frame:
         surface = frame.surface.copy()
         objects = [copy(objects) for objects in frame.objects]
         return Frame(surface, objects)
+    
+    def set_to_base(self):
+        """Sets this frame to the base frame.
+        Any objects present that are not in the base frame will remain but not move, only move to top layer.
+        Any objects not present that are in the base frame will be ignored.
+        Objects that are in the base frame will move to the base frame position, rotation and layer.
+        """
+        #Get base frame
+        try:
+            with open(filename, "r") as f:
+                base = json.load(f)["base"]
+        except:
+            raise LookupError (f"No 'base' frame found in {filename}.")
+        #New objects list
+        objects = [None for _ in range(len(base))]
+        #Get center
+        centerx, centery = display.get_width()/2, display.get_height()/2
+        #Copy data
+        for name, data in list(base.items()):
+            relevant_object = list(filter(lambda o: o.name==name, self.objects))
+            if len(relevant_object) == 0: #Object does not exist in this frame
+                continue
+            elif len(relevant_object) > 1: #Multiple objects of same name in this frame
+                raise ValueError ("Multiple objects with the same name in this frame.")
+            else: #One object of same name, copy data
+                relevant_object = relevant_object[0]
+                relative_pos = data[0]["pos"]
+                relevant_object.pos = relative_pos[0]*SCALE+centerx, relative_pos[1]*SCALE+centery
+                relevant_object.rot = data[0]["rot"]
+                objects[data[0]["seq"]] = relevant_object
+                self.objects.remove(relevant_object)
+        #Filter out any None objects (when less objects in this frame than base frame)
+        objects = list(filter(lambda o: o!=None, objects))
+        #Add objects not in the base frame to the object list
+        objects += self.objects
+        #Set the object list
+        self.objects = objects
+
 
     def render(self):
         self.surface.fill(0)
@@ -149,7 +187,8 @@ sprites = {
     "left foot" : "debug_foot.png",
     "right foot" : "debug_foot.png",
     "left hand" : "debug_hand.png",
-    "right hand" : "debug_hand.png"
+    "right hand" : "debug_hand.png",
+    "extra hand" : "debug_hand.png"
 }
 
 #Store sprite, pos, rect
@@ -158,7 +197,8 @@ objects = [Sprite("torso", sprites["torso"], [0,0], 0),
            Sprite("left foot", sprites["left foot"], [300,0], 0), 
            Sprite("right foot", sprites["right foot"], [300,50], 0), 
            Sprite("left hand", sprites["left hand"], [400, 0], 0), 
-           Sprite("right hand", sprites["right hand"], [400, 50], 0)]
+           Sprite("right hand", sprites["right hand"], [400, 50], 0),
+           Sprite("extra hand", sprites["extra hand"], [600, 300], 0)]
 
 
 frames:list[Frame] = []
@@ -465,6 +505,10 @@ while running:
                         current_frame.objects.remove(selected_sprite)
                         current_frame.objects.insert(index + (1 if event.key == pygame.K_UP else -1), selected_sprite)
                         current_frame.render()
+            #Set current frame to base frame
+            elif event.key == pygame.K_b:
+                current_frame.set_to_base()
+                current_frame.render()
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
