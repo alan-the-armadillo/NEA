@@ -72,11 +72,12 @@ def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
     fp.write("\n")
 
 class Frame:
-    def __init__(self, surface:pygame.Surface, objects:list):
+    def __init__(self, surface:pygame.Surface, objects:list, render = True):
         self.surface = surface
         self.objects:list[Sprite] = objects
         self.opacity = 255
-        self.render()
+        if render:
+            self.render()
     @staticmethod
     def copy(frame:"Frame"):
         surface = frame.surface.copy()
@@ -149,37 +150,81 @@ class Sprite:
     def get_rect(self):
         return self.img.get_rect(topleft=self.pos)
 
+    def move_to(self, pos):
+        displacement = pygame.Vector2([pos[0]-self.pos[0], pos[1]-self.pos[1]])
+        self.pos = pos
+        for child_name in child_relations:
+            if self.name == child_relations[child_name]:
+                child = list(filter(lambda o: o.name == child_name, current_frame.objects))[0]
+                child.move_to(displacement+child.pos)
+
+    def distance_to(self, pos):
+            x1, y1, x2, y2 = self.pos[0]+self.hw, self.pos[1]+self.hh, pos[0], pos[1]
+            return ((x1-x2)**2 + (y1-y2)**2)**0.5
+
+    def get_rot_pos(self, rect, center_of_rot, angle):
+        center = rect.center
+        origin = pygame.Vector2(center_of_rot)
+        u = -origin+center
+        v = u.rotate(-angle)
+        return origin+v
+
+    def get_self_rot_pos(self):
+        rotated_img = pygame.transform.rotate(self.img, self.rot)
+        new_relative_center = rotated_img.get_rect().center
+        new_rot_center = self.get_rot_pos(self.get_rect(), self.get_rect().center, self.rot)
+        new_pos = [new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
+        return rotated_img, new_pos
+
+    def get_parent_rot_pos(self, img, rect, parent):
+        rotated_img = pygame.transform.rotate(img, parent.rot)
+        new_relative_center = rotated_img.get_rect().center
+        new_rot_center = self.get_rot_pos(rect, parent.get_rect().center, parent.rot)
+        new_pos = [new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
+        return rotated_img, new_pos
+
+    def get_full_rot_data(self):
+        rotated_img, new_pos = self.get_self_rot_pos()
+        parent = self
+        while child_relations[parent.name]:
+            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            if parent != []:
+                parent = parent[0]
+                rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent)
+            else:
+                break
+        return rotated_img, new_pos
+
     def draw(self, surface:pygame.Surface):
         """Draws the Sprite.
-        Accounts for rotation, and rotates from the center."""
-        center = self.img.get_rect().center
-        rotated_img = pygame.transform.rotate(self.img, self.rot)
-        new_center = rotated_img.get_rect().center
-        new_pos = [self.pos[0], self.pos[1]]
-        new_pos[0] -= new_center[0]-center[0]
-        new_pos[1] -= new_center[1]-center[1]
-
+        Accounts for rotation, and rotates from the center.""" 
+        ####################################################################      NEED to set rotated pos once rotation has finished, 
+        #allowing parent to be removed and rot still apply, and for rotations to actually mvoe objects not just their sprite
+        #This will also involve being able to reset rotations along parent chain
+        #Setting rotation should be as simple as checking for a parent in child relations and applying this after rotating along own rotation. <-done. but would be nice as a function that can then be easily called  (and allows for chains)
+        rotated_img, new_pos = self.get_full_rot_data()
+        #Blit
         surface.blit(rotated_img, new_pos)
     
-    def draw_highlight(self, surface, width):
+    def draw_highlight(self, surface, width, color):
         sprite_rect = self.img.get_rect()
         w,h = sprite_rect.size
         pygame.draw.rect(
             surface,
-            [255,255,0],
+            color,
             pygame.Rect([self.pos[0]-width, self.pos[1]-width], [w+width*2, h+width*2]),
             width)
-        self.highlighted = True
-    
-    def distance_to(self, pos):
-        x1, y1, x2, y2 = self.pos[0]+self.hw, self.pos[1]+self.hh, pos[0], pos[1]
-        return ((x1-x2)**2 + (y1-y2)**2)**0.5
 
 def draw_text_overlay(surface:pygame.Surface):
     for objects in current_frame.objects:
         if objects.text:
             surface.blit(objects.text, objects.pos)
 
+def init_child_relations(frame:Frame):
+    child_relations = {}
+    for object in frame.objects:
+        child_relations.update({object.name:None})
+    return child_relations
 
 sprites = {
     "head" : "debug_head.png",
@@ -188,7 +233,8 @@ sprites = {
     "right foot" : "debug_foot.png",
     "left hand" : "debug_hand.png",
     "right hand" : "debug_hand.png",
-    "extra hand" : "debug_hand.png"
+    "left melee" : "debug_melee.png",
+    "right melee" : "debug_melee.png"
 }
 
 #Store sprite, pos, rect
@@ -198,21 +244,33 @@ objects = [Sprite("torso", sprites["torso"], [0,0], 0),
            Sprite("right foot", sprites["right foot"], [300,50], 0), 
            Sprite("left hand", sprites["left hand"], [400, 0], 0), 
            Sprite("right hand", sprites["right hand"], [400, 50], 0),
-           Sprite("extra hand", sprites["extra hand"], [600, 300], 0)]
+           Sprite("left melee", sprites["left melee"], [500, 0], 0),
+           Sprite("right melee", sprites["right melee"], [500, 200], 0)]
 
 
 frames:list[Frame] = []
+current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects, False)
 overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 show_first_frame = False
+#Movement
 drag_sprite = None
 displacement = None
+#Rotations
 rotating_sprite = None
 rot_change = None
 rot_start = None
+#Rendering extra data
 render_text = True
 num_skin_layers = 3
+#Ediing
 editing_frame_index = None
+#Parenting
+child = None
+child_relations = init_child_relations(current_frame)
+show_child_relations = True
+
+current_frame.render()
 
 anim_playing = False
 editing = False
@@ -225,8 +283,6 @@ mode_colors = {
 }
 
 mode_color = mode_colors["animate"]
-
-current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects)
 
 def create_frame():
     """Copies the current frame to the frame list.
@@ -340,6 +396,31 @@ def blit_frame_num(surface, color):
         text = f"{len(frames)+1}/{len(frames)+1}"
     surface.blit(font.render(text, True, color), [0,0])
 
+def draw_child_relations(surface):
+    for i, child_parent_names in enumerate(child_relations.items()):
+        try:
+            child = list(filter(lambda o: o.name == child_parent_names[0], current_frame.objects))[0]
+            parent = list(filter(lambda o: o.name == child_parent_names[1], current_frame.objects))[0]
+            child_pos = child.get_rect().center
+            parent_pos = parent.get_rect().center
+            #Get colour off (custom) colour wheel (such that at i=0 or i=1 c=[255,0,0], i=1/3 c=[255,255,0], i=2/3 c=[0,0,255])
+            j = 255 * i/len(child_relations)
+            if j < 85:
+                color = [255, 3*j, 0]
+            elif j <170:
+                color = [max(765-6*j,0), 510-3*j, 3*j-255]
+            else:
+                color = [3*j-510, 0, 765-3*j]
+            #Draw lines between parents and children
+            pygame.draw.line(surface, [0,0,0], child_pos, parent_pos, int(1.5*SCALE))
+            pygame.draw.line(surface, color, child_pos, parent_pos, 1*SCALE)
+            #Draw circle at parent
+            pygame.draw.circle(surface, color, parent_pos, 2*SCALE)
+            pygame.draw.circle(surface, [0,0,0], parent_pos, 2*SCALE, int(0.5*SCALE))
+        except IndexError:
+            continue
+
+
 def save():
     global frames, current_frame
     try:
@@ -421,6 +502,9 @@ def save():
     if take_off_frame:
         frames = frames[1:]
 
+def get_possible_sprites():
+    return list(filter(lambda x: x.highlighted, current_frame.objects))
+
 clock = pygame.time.Clock()
 running = True
 saving = False
@@ -465,7 +549,7 @@ while running:
                     rot_change = None
                     rot_start = None
                 else:
-                    possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
+                    possible_sprites = get_possible_sprites()
                     if possible_sprites != []:
                         rotating_sprite = possible_sprites[0]
                         rot_change = get_rot(rotating_sprite.get_rect().center, mouse_pos)
@@ -496,8 +580,8 @@ while running:
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
             #Change layer order
-            elif event.key in [pygame.K_UP, pygame.K_DOWN] and pygame.K_LSHIFT not in keys:
-                possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
+            elif event.key in [pygame.K_UP, pygame.K_DOWN] and not keys[pygame.K_LSHIFT]:
+                possible_sprites = get_possible_sprites()
                 if possible_sprites != []:
                     selected_sprite = possible_sprites[0]
                     index = current_frame.objects.index(selected_sprite)
@@ -509,9 +593,23 @@ while running:
             elif event.key == pygame.K_b:
                 current_frame.set_to_base()
                 current_frame.render()
+            #Toggle parent-child relationship view
+            elif event.key == pygame.K_p:
+                show_child_relations = not show_child_relations
+            #Erase parent-child relationship
+            elif event.key == pygame.K_BACKSPACE and child:
+                #If holding shift, remove child relations
+                if keys[pygame.K_LSHIFT]:
+                    for obj_names in child_relations:
+                        if child.name == child_relations[obj_names]:
+                            child_relations[obj_names] = None
+                #Otherwise, remove parent relation
+                else:
+                    child_relations[child.name] = None
+                child = None
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            possible_sprites = list(filter(lambda x: x.highlighted, current_frame.objects))
+            possible_sprites = get_possible_sprites()
             if possible_sprites != []:
                 drag_sprite = possible_sprites[0]
                 sx,sy = drag_sprite.pos
@@ -521,6 +619,26 @@ while running:
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             drag_sprite = None
             last_mouse_pos = None
+        #Parental selecting
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            #Select child
+            possible_sprites = get_possible_sprites()
+            if possible_sprites != []:
+                sprite = possible_sprites[0]
+                if not child:
+                    child = sprite
+                else:
+                    if sprite == child:
+                        child = None
+                    else:
+                        parent = sprite
+                        #If child is parent of parent, remove this relation
+                        if child.name == child_relations[parent.name]:
+                            child_relations[parent.name] = None
+                        #Add child-parent relation (if not already present)
+                        child_relations[child.name] = parent.name
+                        child = None
+                        
         #Change onion skin amount
         if event.type == pygame.MOUSEWHEEL or (event.type == pygame.KEYDOWN and (event.key == pygame.K_UP or event.key == pygame.K_DOWN) and keys[pygame.K_LSHIFT]):
             if event.type == pygame.MOUSEWHEEL:
@@ -554,14 +672,17 @@ while running:
         mouse_pos = pygame.mouse.get_pos()
         #Drag object if mouse button is being held down
         if drag_sprite:
-            drag_sprite.pos = [mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]]
+            drag_sprite.move_to([mouse_pos[0]+displacement[0], mouse_pos[1]+displacement[1]])
             current_frame.render()
-        #Undo last rotation, then find angle between object and mouse_po
+        #Undo last rotation, then find angle between object and mouse_pos
         elif rotating_sprite:
             rotating_sprite.rot -= rot_change
             rot_change = get_rot(rotating_sprite.get_rect().center, mouse_pos)
             rotating_sprite.rot += rot_change
             current_frame.render()
+        #Highlight child selection
+        elif child:
+            child.draw_highlight(overlay, int(SCALE), [255,0,255])
         #Highlight
         shortest_distance = 10000
         closest = None
@@ -573,7 +694,8 @@ while running:
                 shortest_distance = dist_to_mouse
                 closest = sprite
         if closest.get_rect().collidepoint(mouse_pos):
-            closest.draw_highlight(overlay, int(SCALE/2))
+            closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
+            closest.highlighted = True
 
         #Onion skinning
         if editing:
@@ -585,6 +707,8 @@ while running:
             draw_text_overlay(overlay)
         display.blit(overlay, [0,0])
     
+    if show_child_relations:
+        draw_child_relations(display)
     blit_frame_num(display, "white")    
     clock.tick(fps)
     pygame.display.update()
