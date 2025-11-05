@@ -128,6 +128,7 @@ class Frame:
             objects.draw(self.surface)
     def draw(self, surface:pygame.Surface, opacity=255):
         #Setting here prevents repeating alpha setting later when unnecessary
+        self.render()
         if self.opacity != opacity:
             self.opacity = opacity
             self.surface.set_alpha(opacity)
@@ -163,15 +164,20 @@ class Sprite:
             return ((x1-x2)**2 + (y1-y2)**2)**0.5
 
     def get_rot_pos(self, rect, center_of_rot, angle):
-        center = rect.center
+        if type(rect) == pygame.Rect:
+            center = rect.center
         origin = pygame.Vector2(center_of_rot)
         u = -origin+center
         v = u.rotate(-angle)
         return origin+v
 
+    def get_self_relative_center(self):
+        rotated_img = pygame.transform.rotate(self.img, self.rot)
+        return rotated_img.get_rect().center
+
     def get_self_rot_pos(self):
         rotated_img = pygame.transform.rotate(self.img, self.rot)
-        new_relative_center = rotated_img.get_rect().center
+        new_relative_center = self.get_self_relative_center()
         new_rot_center = self.get_rot_pos(self.get_rect(), self.get_rect().center, self.rot)
         new_pos = [new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
         return rotated_img, new_pos
@@ -194,6 +200,28 @@ class Sprite:
             else:
                 break
         return rotated_img, new_pos
+
+    def get_full_rot_center(self):
+        new_pos = self.get_rect().center
+        parent = self
+        while child_relations[parent.name]:
+            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            if parent != []:
+                parent = parent[0]
+                new_pos = self.get_rot_pos(new_pos, parent.get_rect().center, parent.rot)
+            else:
+                break
+        return new_pos
+
+    def get_full_rot(self):
+        rot = self.rot
+        parent = self
+        while child_relations[parent.name]:
+            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            if parent != []:
+                parent = parent[0]
+                rot += parent.rot
+        return rot
 
     def draw(self, surface:pygame.Surface):
         """Draws the Sprite.
@@ -304,14 +332,17 @@ def set_mode(mode_name):
     """Apply relevant variable changes for mode selection.
     Mode names include 'playing', 'editing' and 'animating'.
     """
-    global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index, fps, current_frame
+    global anim_playing, editing, frame_num, mode_color, frames, editing_frame_index, fps, current_frame, save_current_frame
     #If no longer editing
+    if anim_playing and mode_name != "playing":
+        current_frame = save_current_frame 
     if editing and mode_name != "editing":
         current_frame = frames[0]
         frames = frames[1:]
     if mode_name == "playing":
         anim_playing = True
         editing = False
+        save_current_frame = Frame.copy(current_frame)
         frame_num = len(frames)-1
         mode_color = mode_colors["play"]
         fps = 12
@@ -373,6 +404,7 @@ def load_anim():
                     frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(anim_data, i)) for i in range(len(list(anim_data.values())[0]))][::-1]
                     current_frame = frames[0]
                     frames = frames[1:]
+                    current_frame.render()
                     print("Loaded new anim.")
                     return
                 elif affirmation == "n":
@@ -395,6 +427,9 @@ def blit_frame_num(surface, color):
     else:
         text = f"{len(frames)+1}/{len(frames)+1}"
     surface.blit(font.render(text, True, color), [0,0])
+
+    surface.blit(font.render(str([round(obj.get_full_rot()) for obj in current_frame.objects]), True, color), [0,800])
+    surface.blit(font.render(str([obj.get_full_rot_data()[1] for obj in current_frame.objects]), True, color), [0,825])
 
 def draw_child_relations(surface):
     for i, child_parent_names in enumerate(child_relations.items()):
@@ -472,15 +507,28 @@ def save():
         take_off_frame = False
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
+    #Save current frame
+    #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
+    torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
+    pos = torso.get_full_rot_data()[1]
+    rel_center = torso.get_self_relative_center()
+    rot_center = torso.get_full_rot_center()
+    origin = [pos[0]-(rot_center[0]-(pos[0]+rel_center[0])), pos[1]-(rot_center[1]-(pos[1]+rel_center[1]))]
     for frame in frames:
-        torso = list(filter(lambda o: o.name == "torso",frame.objects))[0]
+        current_frame = frame
         #Loop through objects while filtering out any removed objects
         for j, objects in enumerate(list(filter(lambda o: o.name not in removed, frame.objects))):
+            #Find the rotated data of the object
+            pos = objects.get_full_rot_data()[1]
+            rel_center = objects.get_self_relative_center()
+            rot_center = objects.get_full_rot_center()
+            obj_pos = [pos[0]-(rot_center[0]-(pos[0]+rel_center[0])), pos[1]-(rot_center[1]-(pos[1]+rel_center[1]))]
             obj_data = {
-                "pos" : [(objects.pos[0]-torso.pos[0])/SCALE, (objects.pos[1]-torso.pos[1])/SCALE],
-                "rot" : objects.rot,
+                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE], #<------------ pos does not work 😭
+                "rot" : objects.get_full_rot(),
                 "seq" : j
             }
+            #Add obj frame data to save data
             if objects.name in save_data:
                 save_data[objects.name].append(obj_data)
             else:
@@ -498,7 +546,7 @@ def save():
     #Save data to file
     with open(filename, "w") as file:
         custom_dump(save_data, file)
-    
+    current_frame = frames[0]
     if take_off_frame:
         frames = frames[1:]
 
@@ -662,7 +710,8 @@ while running:
 
     if anim_playing and len(frames) != 0:
         display.fill(mode_color)
-        frames[frame_num].draw(display)
+        current_frame = frames[frame_num]
+        current_frame.draw(display)
         frame_num = (frame_num - 1) % len(frames)
 
     else:
