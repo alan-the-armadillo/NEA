@@ -346,14 +346,17 @@ def create_frame():
     frames = [copy_frame] + frames
     onion_skin(onion_layer)
 
-def onion_skin(surface:pygame.Surface, current_index=0):
+def onion_skin(surface:pygame.Surface, current_index=-1):
     """Draws onion skin layers onto surface (after clearing surface first).
     """
     global current_frame
     surface.fill(0)
+    #Save current frame and save a copy to the current frame variable
+    #This means that the current frame positions and rotations can be used for parenting
+    #but using a copy and re-saving the original because this means the objects the user has selected stay selected.
     save_current_frame = current_frame
     current_frame = Frame.copy(save_current_frame)
-    select_frames = frames[current_index:current_index+num_skin_layers]
+    select_frames = frames[current_index+1:current_index+1+num_skin_layers]
     for i, frame in enumerate(select_frames):
         current_frame = frame
         frame.draw(surface, 90-60*i/num_skin_layers)
@@ -738,6 +741,11 @@ while running:
             else:
                 difference = 1 if event.key == pygame.K_UP else -1
             num_skin_layers = min(len(frames) ,max(0, num_skin_layers+difference))
+            #Redraw onion skins (to include new layer/exclude old layer)
+            if editing:
+                onion_skin(onion_layer, editing_frame_index)
+            else:
+                onion_skin(onion_layer)
 
     #Save
     if keys[pygame.K_LCTRL] and keys[pygame.K_s]:
@@ -761,6 +769,7 @@ while running:
     else:
         display.fill(mode_color)
         overlay.fill(0)
+
         #Underlay the onion skins
         display.blit(onion_layer, [0,0])
 
@@ -806,9 +815,12 @@ while running:
 pygame.display.quit()
 
 
-"""NEED TO IMPLEMENT ORDER OF ITEMS, SUCH THAT THE USER CAN PICK WHICH ITEM GOES ON TOP.
-You should at this point also make a weapon object, or allow for a weapon object. The user should specify the name of the object, as well as supplying an image file.
-You may want to implement weapon snapping, so the user can specify which limb the weapon should snap to to make animation easier.
+"""ONE THING TO KEEP IN MIND --> pos are set when saving, meaning rotated objects will have correct hitboxes.
+This could be implemented into main animating if and only if parenting parented from where it currently is, not copying over,
+hence there would have to be some attribute to keep track of the rotation offset between the objects. This may just be a useful
+addition on itself though without the rotating with correct hitboxes, as it means you can save and load an animation and
+continue if completely pertinent, which would be a pain but it works.
+
 You could, at some point, make extra anim objects like smear frames but this should be a final touch.
 
 Possibility for other helpful changes such as objects retaining motion through frames, but would be hard to implement now.
