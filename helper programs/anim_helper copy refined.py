@@ -476,10 +476,10 @@ def blit_frame_num(surface, color):
 def draw_child_relations(surface):
     for i, child_parent_names in enumerate([[objects.name, objects.parent] for objects in current_frame.objects]):
         try:
-            child = list(filter(lambda o: o.name == child_parent_names[0], current_frame.objects))[0]
-            parent = list(filter(lambda o: o.name == child_parent_names[1], current_frame.objects))[0]
-            child_pos = child.get_rect().center
-            parent_pos = parent.get_rect().center
+            child:Sprite = list(filter(lambda o: o.name == child_parent_names[0], current_frame.objects))[0]
+            parent:Sprite = list(filter(lambda o: o.name == child_parent_names[1], current_frame.objects))[0]
+            child_pos = child.get_full_rot_center()
+            parent_pos = parent.get_full_rot_center()
             #Get colour off (custom) colour wheel (such that at i=0 or i=1 c=[255,0,0], i=1/3 c=[255,255,0], i=2/3 c=[0,0,255])
             j = 255 * i/len(current_frame.objects)
             if j < 85:
