@@ -141,6 +141,7 @@ class Sprite:
         self.img = pygame.transform.scale_by(pygame.image.load("sprites/"+img_name), SCALE)
         self.pos = pos
         self.rot = rot
+        self.parent_rot_offset = 0
         #text used to help user differentiate modules by initialising the name
         self.text = font.render("".join([char.upper() for i,char in enumerate(name) if i == 0 or name[i-1] == " "]), True, [255,255,255], [0,0,0])
         sprite_rect = self.img.get_rect()
@@ -184,10 +185,10 @@ class Sprite:
         new_pos = [new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
         return rotated_img, new_pos
 
-    def get_parent_rot_pos(self, img, rect, parent):
-        rotated_img = pygame.transform.rotate(img, parent.rot)
+    def get_parent_rot_pos(self, img, rect, parent, offset=0):
+        rotated_img = pygame.transform.rotate(img, parent.rot+offset)
         new_relative_center = rotated_img.get_rect().center
-        new_rot_center = self.get_rot_pos(rect, parent.get_rect().center, parent.rot)
+        new_rot_center = self.get_rot_pos(rect, parent.get_rect().center, parent.rot+offset)
         new_pos = [new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
         return rotated_img, new_pos
 
@@ -195,10 +196,11 @@ class Sprite:
         rotated_img, new_pos = self.get_self_rot_pos()
         parent = self
         while child_relations[parent.name]:
+            offset = parent.parent_rot_offset
             parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
             if parent != []:
                 parent = parent[0]
-                rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent)
+                rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent, offset)
             else:
                 break
         return rotated_img, new_pos
@@ -230,10 +232,11 @@ class Sprite:
         new_pos = self.get_rect().center
         parent = self
         while child_relations[parent.name]:
+            offset = parent.parent_rot_offset
             parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
             if parent != []:
                 parent = parent[0]
-                new_pos = self.get_rot_pos(new_pos, parent.get_rect().center, parent.rot)
+                new_pos = self.get_rot_pos(new_pos, parent.get_rect().center, parent.rot+offset)
             else:
                 break
         return new_pos
@@ -242,10 +245,11 @@ class Sprite:
         rot = self.rot
         parent = self
         while child_relations[parent.name]:
+            offset = parent.parent_rot_offset
             parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
             if parent != []:
                 parent = parent[0]
-                rot += parent.rot
+                rot += parent.rot + offset
         return rot
 
     def draw(self, surface:pygame.Surface):
@@ -732,6 +736,7 @@ while running:
                             child_relations[parent.name] = None
                         #Add child-parent relation (if not already present)
                         child_relations[child.name] = parent.name
+                        child.parent_rot_offset = -parent.rot
                         child = None
                         
         #Change onion skin amount
