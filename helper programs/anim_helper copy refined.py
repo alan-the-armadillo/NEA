@@ -202,6 +202,29 @@ class Sprite:
             else:
                 break
         return rotated_img, new_pos
+    
+    def get_partial_rot_data(self):
+        if not child_relations[self.name]:
+            return self.img, self.pos
+        img, pos = self.get_full_rot_data()
+        rotated_img = pygame.transform.rotate(img, -self.rot)
+        new_relative_center = rotated_img.get_rect().center
+        new_rot_center = self.get_full_rot_center()
+        new_pos = [new_rot_center[0]-self.img.get_width()/2, new_rot_center[1]-self.img.get_height()/2]#[new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
+        return rotated_img, new_pos
+        """
+        parent = self
+        rotated_img = self.img
+        new_pos = self.pos
+        while child_relations[parent.name]:
+            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            if parent != []:
+                parent = parent[0]
+                rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent)
+            else:
+                break
+        return rotated_img, new_pos
+        """
 
     def get_full_rot_center(self):
         new_pos = self.get_rect().center
@@ -510,27 +533,30 @@ def save():
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
     #Save current frame
-    find_pos = lambda: [pos[0]-(rot_center[0]-(pos[0]+2*rel_center[0]))-half_dim[0], pos[1]-(rot_center[1]-(pos[1]+2*rel_center[1]))-half_dim[1]]
+    def find_pos(sprite:Sprite, pos, rel_center, rotated_img):
+        #<-------------------------------------------------------The biggest issue rn
+        return sprite.get_partial_rot_data()[1]
+
     #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
-    pos = torso.get_full_rot_data()[1]
+    rot_img , pos = torso.get_full_rot_data()
     rel_center = torso.get_self_relative_center()
     rot_center = torso.get_full_rot_center()
     half_dim = [torso.get_rect().width/2, torso.get_rect().height/2]
-    origin = find_pos()
+    origin = torso.get_partial_rot_data()[1]
     for frame in frames:
         current_frame = frame
         #Loop through objects while filtering out any removed objects
         for j, objects in enumerate(list(filter(lambda o: o.name not in removed, frame.objects))):
             #Find the rotated data of the object
-            pos = objects.get_full_rot_data()[1]
+            rot_img, pos = objects.get_full_rot_data()
             rel_center = objects.get_self_relative_center()
             rot_center = objects.get_full_rot_center()
             half_dim = [objects.get_rect().width/2, objects.get_rect().height/2]
-            obj_pos = find_pos()
+            obj_pos = objects.get_partial_rot_data()[1]
             obj_data = {
-                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE], #<------------ pos does not work 😭
-                "rot" : objects.get_full_rot(),
+                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE], #<------------ pos does not work 😭 items still dance
+                "rot" : objects.get_full_rot(), #<-------- also may not work since rot is used to get rot pos for drawing (but maybe not)
                 "seq" : j
             }
             #Add obj frame data to save data
