@@ -166,6 +166,8 @@ class Sprite:
     def get_rot_pos(self, rect, center_of_rot, angle):
         if type(rect) == pygame.Rect:
             center = rect.center
+        else:
+            center = rect
         origin = pygame.Vector2(center_of_rot)
         u = -origin+center
         v = u.rotate(-angle)
@@ -508,12 +510,14 @@ def save():
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
     #Save current frame
+    find_pos = lambda: [pos[0]-(rot_center[0]-(pos[0]+2*rel_center[0]))-half_dim[0], pos[1]-(rot_center[1]-(pos[1]+2*rel_center[1]))-half_dim[1]]
     #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
     pos = torso.get_full_rot_data()[1]
     rel_center = torso.get_self_relative_center()
     rot_center = torso.get_full_rot_center()
-    origin = [pos[0]-(rot_center[0]-(pos[0]+rel_center[0])), pos[1]-(rot_center[1]-(pos[1]+rel_center[1]))]
+    half_dim = [torso.get_rect().width/2, torso.get_rect().height/2]
+    origin = find_pos()
     for frame in frames:
         current_frame = frame
         #Loop through objects while filtering out any removed objects
@@ -522,7 +526,8 @@ def save():
             pos = objects.get_full_rot_data()[1]
             rel_center = objects.get_self_relative_center()
             rot_center = objects.get_full_rot_center()
-            obj_pos = [pos[0]-(rot_center[0]-(pos[0]+rel_center[0])), pos[1]-(rot_center[1]-(pos[1]+rel_center[1]))]
+            half_dim = [objects.get_rect().width/2, objects.get_rect().height/2]
+            obj_pos = find_pos()
             obj_data = {
                 "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE], #<------------ pos does not work 😭
                 "rot" : objects.get_full_rot(),
