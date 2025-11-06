@@ -252,6 +252,17 @@ class Sprite:
                 rot += parent.rot + offset
         return rot
 
+    def apply_rotation(self):
+        parent = self
+        _, parent.pos = parent.get_partial_rot_data()
+        parent.rot = parent.get_full_rot()
+        child = list(filter(lambda o: o.parent == self.name, current_frame.objects))
+        if child != []:
+            child = child[0]
+            child.apply_rotation()
+            child.parent_rot_offset = -parent.rot
+        
+
     def draw(self, surface:pygame.Surface):
         """Draws the Sprite.
         Accounts for rotation, and rotates from the center.""" 
@@ -264,12 +275,13 @@ class Sprite:
         surface.blit(rotated_img, new_pos)
     
     def draw_highlight(self, surface, width, color):
-        sprite_rect = self.img.get_rect()
+        img, pos = self.get_full_rot_data()
+        sprite_rect = img.get_rect()
         w,h = sprite_rect.size
         pygame.draw.rect(
             surface,
             color,
-            pygame.Rect([self.pos[0]-width, self.pos[1]-width], [w+width*2, h+width*2]),
+            pygame.Rect([pos[0]-width, pos[1]-width], [w+width*2, h+width*2]),
             width)
 
 def draw_text_overlay(surface:pygame.Surface):
@@ -470,8 +482,8 @@ def blit_frame_num(surface, color):
         text = f"{len(frames)+1}/{len(frames)+1}"
     surface.blit(font.render(text, True, color), [0,0])
 
-    surface.blit(font.render(str([round(obj.get_full_rot()) for obj in current_frame.objects]), True, color), [0,800])
-    surface.blit(font.render(str([obj.get_full_rot_data()[1] for obj in current_frame.objects]), True, color), [0,825])
+    surface.blit(font.render(str([round(obj.rot) for obj in current_frame.objects]), True, color), [0,800])
+    surface.blit(font.render(str([obj.pos for obj in current_frame.objects]), True, color), [0,825])
 
 def draw_child_relations(surface):
     for i, child_parent_names in enumerate([[objects.name, objects.parent] for objects in current_frame.objects]):
@@ -549,31 +561,19 @@ def save():
         take_off_frame = False
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
-    #Save current frame
-    def find_pos(sprite:Sprite, pos, rel_center, rotated_img):
-        #<-------------------------------------------------------The biggest issue rn
-        return sprite.get_partial_rot_data()[1]
 
     #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
-    rot_img , pos = torso.get_full_rot_data()
-    rel_center = torso.get_self_relative_center()
-    rot_center = torso.get_full_rot_center()
-    half_dim = [torso.get_rect().width/2, torso.get_rect().height/2]
     origin = torso.get_partial_rot_data()[1]
     for frame in frames:
         current_frame = frame
         #Loop through objects while filtering out any removed objects
         for j, objects in enumerate(list(filter(lambda o: o.name not in removed, frame.objects))):
             #Find the rotated data of the object
-            rot_img, pos = objects.get_full_rot_data()
-            rel_center = objects.get_self_relative_center()
-            rot_center = objects.get_full_rot_center()
-            half_dim = [objects.get_rect().width/2, objects.get_rect().height/2]
             obj_pos = objects.get_partial_rot_data()[1]
             obj_data = {
-                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE], #<------------ pos does not work 😭 items still dance
-                "rot" : objects.get_full_rot(), #<-------- also may not work since rot is used to get rot pos for drawing (but maybe not)
+                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE],
+                "rot" : objects.get_full_rot(),
                 "seq" : j
             }
             #Add obj frame data to save data
@@ -641,6 +641,7 @@ while running:
             #Complete rotation / rotate sprite
             elif event.key == pygame.K_r:
                 if rotating_sprite:
+                    rotating_sprite.apply_rotation()
                     rotating_sprite = None
                     rot_change = None
                     rot_start = None
@@ -660,6 +661,7 @@ while running:
             #Reset rotation
             elif event.key == pygame.K_BACKSPACE and rotating_sprite:
                 rotating_sprite.rot = 0
+                rotating_sprite.apply_rotation()
                 current_frame.render()
                 rotating_sprite = None
                 rot_change = None
@@ -807,7 +809,8 @@ while running:
             if dist_to_mouse < shortest_distance or closest == None:
                 shortest_distance = dist_to_mouse
                 closest = sprite
-        if closest.get_rect().collidepoint(mouse_pos):
+        img, pos = closest.get_full_rot_data()
+        if img.get_rect(topleft=pos).collidepoint(mouse_pos):
             closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
             closest.highlighted = True
         
@@ -825,11 +828,7 @@ while running:
 pygame.display.quit()
 
 
-"""ONE THING TO KEEP IN MIND --> pos are set when saving, meaning rotated objects will have correct hitboxes.
-This could be implemented into main animating if and only if parenting parented from where it currently is, not copying over,
-hence there would have to be some attribute to keep track of the rotation offset between the objects. This may just be a useful
-addition on itself though without the rotating with correct hitboxes, as it means you can save and load an animation and
-continue if completely pertinent, which would be a pain but it works.
+"""Should have correct hitboxes set (IMPORTANT to have rotations reset/parent offsets re-made) after rotating for children and parents.
 
 You could, at some point, make extra anim objects like smear frames but this should be a final touch.
 
