@@ -141,6 +141,7 @@ class Sprite:
         self.img = pygame.transform.scale_by(pygame.image.load("sprites/"+img_name), SCALE)
         self.pos = pos
         self.rot = rot
+        self.parent = None
         self.parent_rot_offset = 0
         #text used to help user differentiate modules by initialising the name
         self.text = font.render("".join([char.upper() for i,char in enumerate(name) if i == 0 or name[i-1] == " "]), True, [255,255,255], [0,0,0])
@@ -155,10 +156,9 @@ class Sprite:
     def move_to(self, pos):
         displacement = pygame.Vector2([pos[0]-self.pos[0], pos[1]-self.pos[1]])
         self.pos = pos
-        for child_name in child_relations:
-            if self.name == child_relations[child_name]:
-                child = list(filter(lambda o: o.name == child_name, current_frame.objects))[0]
-                child.move_to(displacement+child.pos)
+        for child_objects in current_frame.objects:
+            if self.name == child_objects.parent:
+                child_objects.move_to(displacement+child_objects.pos)
 
     def distance_to(self, pos):
             x1, y1, x2, y2 = self.pos[0]+self.hw, self.pos[1]+self.hh, pos[0], pos[1]
@@ -195,9 +195,9 @@ class Sprite:
     def get_full_rot_data(self):
         rotated_img, new_pos = self.get_self_rot_pos()
         parent = self
-        while child_relations[parent.name]:
+        while parent.parent:
             offset = parent.parent_rot_offset
-            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            parent = list(filter(lambda o: o.name == parent.parent, current_frame.objects))
             if parent != []:
                 parent = parent[0]
                 rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent, offset)
@@ -206,7 +206,7 @@ class Sprite:
         return rotated_img, new_pos
     
     def get_partial_rot_data(self):
-        if not child_relations[self.name]:
+        if not self.parent:
             return self.img, self.pos
         img, pos = self.get_full_rot_data()
         rotated_img = pygame.transform.rotate(img, -self.rot)
@@ -231,9 +231,9 @@ class Sprite:
     def get_full_rot_center(self):
         new_pos = self.get_rect().center
         parent = self
-        while child_relations[parent.name]:
+        while parent.parent:
             offset = parent.parent_rot_offset
-            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            parent = list(filter(lambda o: o.name == parent.parent, current_frame.objects))
             if parent != []:
                 parent = parent[0]
                 new_pos = self.get_rot_pos(new_pos, parent.get_rect().center, parent.rot+offset)
@@ -244,9 +244,9 @@ class Sprite:
     def get_full_rot(self):
         rot = self.rot
         parent = self
-        while child_relations[parent.name]:
+        while parent.parent:
             offset = parent.parent_rot_offset
-            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
+            parent = list(filter(lambda o: o.name == parent.parent, current_frame.objects))
             if parent != []:
                 parent = parent[0]
                 rot += parent.rot + offset
@@ -325,7 +325,6 @@ num_skin_layers = 3
 editing_frame_index = None
 #Parenting
 child = None
-child_relations = init_child_relations(current_frame)
 show_child_relations = True
 
 current_frame.render()
@@ -475,14 +474,14 @@ def blit_frame_num(surface, color):
     surface.blit(font.render(str([obj.get_full_rot_data()[1] for obj in current_frame.objects]), True, color), [0,825])
 
 def draw_child_relations(surface):
-    for i, child_parent_names in enumerate(child_relations.items()):
+    for i, child_parent_names in enumerate([[objects.name, objects.parent] for objects in current_frame.objects]):
         try:
             child = list(filter(lambda o: o.name == child_parent_names[0], current_frame.objects))[0]
             parent = list(filter(lambda o: o.name == child_parent_names[1], current_frame.objects))[0]
             child_pos = child.get_rect().center
             parent_pos = parent.get_rect().center
             #Get colour off (custom) colour wheel (such that at i=0 or i=1 c=[255,0,0], i=1/3 c=[255,255,0], i=2/3 c=[0,0,255])
-            j = 255 * i/len(child_relations)
+            j = 255 * i/len(current_frame.objects)
             if j < 85:
                 color = [255, 3*j, 0]
             elif j <170:
@@ -699,12 +698,16 @@ while running:
             elif event.key == pygame.K_BACKSPACE and child:
                 #If holding shift, remove child relations
                 if keys[pygame.K_LSHIFT]:
-                    for obj_names in child_relations:
-                        if child.name == child_relations[obj_names]:
-                            child_relations[obj_names] = None
+                    for objects in current_frame.objects:
+                        if child.name == objects.parent:
+                            _, objects.pos = objects.get_full_rot_data()
+                            objects.rot = objects.get_full_rot()
+                            objects.parent = None
                 #Otherwise, remove parent relation
                 else:
-                    child_relations[child.name] = None
+                    _, child.pos = child.get_full_rot_data()
+                    child.rot = child.get_full_rot()
+                    child.parent = None
                 child = None
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -732,10 +735,12 @@ while running:
                     else:
                         parent = sprite
                         #If child is parent of parent, remove this relation
-                        if child.name == child_relations[parent.name]:
-                            child_relations[parent.name] = None
+                        if child.name == parent.parent:
+                            _, parent.pos = parent.get_full_rot_data()
+                            parent.rot = parent.get_full_rot()
+                            parent.parent = None
                         #Add child-parent relation (if not already present)
-                        child_relations[child.name] = parent.name
+                        child.parent = parent.name
                         child.parent_rot_offset = -parent.rot
                         child = None
                         
