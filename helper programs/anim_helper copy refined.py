@@ -305,6 +305,7 @@ frames:list[Frame] = []
 current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects, False)
 overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
+onion_layer = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 show_first_frame = False
 #Movement
 drag_sprite = None
@@ -343,15 +344,23 @@ def create_frame():
     global frames
     copy_frame = Frame.copy(current_frame)
     frames = [copy_frame] + frames
+    onion_skin(onion_layer)
 
 def onion_skin(surface:pygame.Surface, current_index=0):
-    """Draws onion skin layers onto surface.
+    """Draws onion skin layers onto surface (after clearing surface first).
     """
+    global current_frame
+    surface.fill(0)
+    save_current_frame = current_frame
+    current_frame = Frame.copy(save_current_frame)
     select_frames = frames[current_index:current_index+num_skin_layers]
     for i, frame in enumerate(select_frames):
+        current_frame = frame
         frame.draw(surface, 90-60*i/num_skin_layers)
     if show_first_frame and len(frames) > 0:
+        current_frame = frames[-1]
         frames[-1].draw(surface, 80)
+    current_frame = save_current_frame
 
 def set_mode(mode_name):
     """Apply relevant variable changes for mode selection.
@@ -378,11 +387,13 @@ def set_mode(mode_name):
         mode_color = mode_colors["edit"]
         editing_frame_index = 0
         fps = 100
+        onion_skin(onion_layer, editing_frame_index)
     elif mode_name == "animating":
         editing = False
         anim_playing = False
         mode_color = mode_colors["animate"]
         fps = 100
+        onion_skin(onion_layer)
     else:
         raise ValueError (f"Mode name '{mode_name}' not recognised.")
 
@@ -651,10 +662,12 @@ while running:
             elif event.key == pygame.K_LEFT and editing:
                 editing_frame_index = min(editing_frame_index+1, len(frames)-1)
                 current_frame = frames[editing_frame_index]
+                onion_skin(onion_layer, editing_frame_index)
             #Go forward 1 frame (edit mode)
             elif event.key == pygame.K_RIGHT and editing:
                 editing_frame_index = max(editing_frame_index-1, 0)
                 current_frame = frames[editing_frame_index]
+                onion_skin(onion_layer, editing_frame_index)
             #Show first frame as a translucent overlay
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
@@ -748,6 +761,8 @@ while running:
     else:
         display.fill(mode_color)
         overlay.fill(0)
+        #Underlay the onion skins
+        display.blit(onion_layer, [0,0])
 
         mouse_pos = pygame.mouse.get_pos()
         #Drag object if mouse button is being held down
@@ -776,17 +791,12 @@ while running:
         if closest.get_rect().collidepoint(mouse_pos):
             closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
             closest.highlighted = True
-
-        #Onion skinning
-        if editing:
-            onion_skin(display, editing_frame_index)
-        else:
-            onion_skin(display)
+        
         #Overlay
         if render_text:
             draw_text_overlay(overlay)
         display.blit(overlay, [0,0])
-    
+
     if show_child_relations:
         draw_child_relations(display)
     blit_frame_num(display, "white")    
