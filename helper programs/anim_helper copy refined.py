@@ -12,7 +12,7 @@ import math
 def make_display():
     global display
     pygame.display.init()
-    display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0], pygame.NOFRAME)
+    display = pygame.display.set_mode(pygame.display.get_desktop_sizes()[0])
 
 make_display()
 
@@ -110,7 +110,12 @@ class Frame:
             else: #One object of same name, copy data
                 relevant_object = relevant_object[0]
                 relative_pos = data[0]["pos"]
-                relevant_object.pos = relative_pos[0]*SCALE+centerx, relative_pos[1]*SCALE+centery
+                try:
+                    relative_center = sprites[relevant_object.name][1]
+                    relative_center = [relative_center[0]*SCALE, relative_center[1]*SCALE]
+                except:
+                    relative_center = relevant_object.img.get_rect().center
+                relevant_object.pos = (relative_pos[0])*SCALE+centerx - relative_center[0], (relative_pos[1])*SCALE+centery - relative_center[1]
                 relevant_object.rot = data[0]["rot"]
                 objects[data[0]["seq"]] = relevant_object
                 self.objects.remove(relevant_object)
@@ -214,19 +219,6 @@ class Sprite:
         new_rot_center = self.get_full_rot_center()
         new_pos = [new_rot_center[0]-self.img.get_width()/2, new_rot_center[1]-self.img.get_height()/2]#[new_rot_center[0]-new_relative_center[0], new_rot_center[1]-new_relative_center[1]]
         return rotated_img, new_pos
-        """
-        parent = self
-        rotated_img = self.img
-        new_pos = self.pos
-        while child_relations[parent.name]:
-            parent = list(filter(lambda o: o.name == child_relations[parent.name], current_frame.objects))
-            if parent != []:
-                parent = parent[0]
-                rotated_img, new_pos = self.get_parent_rot_pos(rotated_img, rotated_img.get_rect(topleft = new_pos), parent)
-            else:
-                break
-        return rotated_img, new_pos
-        """
 
     def get_full_rot_center(self):
         new_pos = self.get_rect().center
@@ -256,20 +248,16 @@ class Sprite:
         parent = self
         _, parent.pos = parent.get_partial_rot_data()
         parent.rot = parent.get_full_rot()
-        child = list(filter(lambda o: o.parent == self.name, current_frame.objects))
-        if child != []:
-            child = child[0]
-            child.apply_rotation()
-            child.parent_rot_offset = -parent.rot
+        children = list(filter(lambda o: o.parent == self.name, current_frame.objects))
+        if children != []:
+            for child in children:
+                child.apply_rotation()
+                child.parent_rot_offset = -parent.rot
         
 
     def draw(self, surface:pygame.Surface):
         """Draws the Sprite.
         Accounts for rotation, and rotates from the center.""" 
-        ####################################################################      NEED to set rotated pos once rotation has finished, 
-        #allowing parent to be removed and rot still apply, and for rotations to actually mvoe objects not just their sprite
-        #This will also involve being able to reset rotations along parent chain
-        #Setting rotation should be as simple as checking for a parent in child relations and applying this after rotating along own rotation. <-done. but would be nice as a function that can then be easily called  (and allows for chains)
         rotated_img, new_pos = self.get_full_rot_data()
         #Blit
         surface.blit(rotated_img, new_pos)
@@ -289,32 +277,26 @@ def draw_text_overlay(surface:pygame.Surface):
         if objects.text:
             surface.blit(objects.text, objects.pos)
 
-def init_child_relations(frame:Frame):
-    child_relations = {}
-    for object in frame.objects:
-        child_relations.update({object.name:None})
-    return child_relations
-
 sprites = {
-    "head" : "debug_head.png",
-    "torso" : "debug_torso.png",
-    "left foot" : "debug_foot.png",
-    "right foot" : "debug_foot.png",
-    "left hand" : "debug_hand.png",
-    "right hand" : "debug_hand.png",
-    "left melee" : "debug_melee.png",
-    "right melee" : "debug_melee.png"
+    "head" : ["debug_head.png"],
+    "torso" : ["debug_torso.png"],
+    "left foot" : ["debug_foot.png"],
+    "right foot" : ["debug_foot.png"],
+    "left hand" : ["debug_hand.png"],
+    "right hand" : ["debug_hand.png"],
+    "left melee" : ["debug_melee.png", [4,13]],
+    "right melee" : ["debug_melee.png", [4,13]]
 }
 
 #Store sprite, pos, rect
-objects = [Sprite("torso", sprites["torso"], [0,0], 0),
-           Sprite("head", sprites["head"], [200,0], 0),  
-           Sprite("left foot", sprites["left foot"], [300,0], 0), 
-           Sprite("right foot", sprites["right foot"], [300,50], 0), 
-           Sprite("left hand", sprites["left hand"], [400, 0], 0), 
-           Sprite("right hand", sprites["right hand"], [400, 50], 0),
-           Sprite("left melee", sprites["left melee"], [500, 0], 0),
-           Sprite("right melee", sprites["right melee"], [500, 200], 0)]
+objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
+           Sprite("head", sprites["head"][0], [200,0], 0),  
+           Sprite("left foot", sprites["left foot"][0], [300,0], 0), 
+           Sprite("right foot", sprites["right foot"][0], [300,50], 0), 
+           Sprite("left hand", sprites["left hand"][0], [400, 0], 0), 
+           Sprite("right hand", sprites["right hand"][0], [400, 50], 0),
+           Sprite("left melee", sprites["left melee"][0], [500, 0], 0),
+           Sprite("right melee", sprites["right melee"][0], [500, 200], 0)]
 
 
 frames:list[Frame] = []
@@ -429,11 +411,21 @@ def load_anim():
             real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
             rotation = frame_data["rot"]
             index = frame_data["seq"]
-            objects[index] = Sprite(name, sprites[name], real_pos, rotation)
+            try:
+                vec_rot = frame_data["offset vector rot"]
+                objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
+                try:
+                    relative_center = (pygame.Vector2(sprites[name][1])*SCALE).rotate(vec_rot)
+                except:
+                    relative_center = pygame.Vector2(objects[index].img.get_rect().center).rotate(vec_rot)
+            except:
+                objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
+                relative_center = pygame.Vector2([0,0])
+            objects[index].pos = -relative_center + real_pos
         return objects
 
     global frames, current_frame
-    print("\nWARNING:  LOADING A NEW ANIM NOW WILL ERASE THE CURRET ANIMATION IF NOT SAVED.")
+    print("\nWARNING:  LOADING A NEW ANIM NOW WILL ERASE THE CURRET ANIMATION.")
     with open(filename, "r") as file:
         data = json.load(file)
     found = False
@@ -493,11 +485,12 @@ def draw_child_relations(surface):
             child_pos = child.get_full_rot_center()
             parent_pos = parent.get_full_rot_center()
             #Get colour off (custom) colour wheel (such that at i=0 or i=1 c=[255,0,0], i=1/3 c=[255,255,0], i=2/3 c=[0,0,255])
-            j = 255 * i/len(current_frame.objects)
+            #Don't subtract length by one, so last item does not appear red
+            j = 255 * i/(len(current_frame.objects))
             if j < 85:
                 color = [255, 3*j, 0]
             elif j <170:
-                color = [max(765-6*j,0), 510-3*j, 3*j-255]
+                color = [max(765-6*j,0), min(1020-6*j, 255), max(6*j-768, 0)]
             else:
                 color = [3*j-510, 0, 765-3*j]
             #Draw lines between parents and children
@@ -509,7 +502,6 @@ def draw_child_relations(surface):
         except IndexError:
             continue
 
-
 def save():
     global frames, current_frame
     try:
@@ -517,6 +509,11 @@ def save():
             data = json.load(file)
     except:
         data = {}
+
+    if len(frames) == 0:
+        print("Cannot save an animation of length 0. Returning to animation in 3 seconds.")
+        time.sleep(3)
+        return
 
     #Ask user for animation name
     found = False
@@ -554,27 +551,37 @@ def save():
             else:
                 print("Input must be 'y' or 'n'.")
 
-    if frames[0] != current_frame:
-        frames = [current_frame] + frames
-        take_off_frame = True
-    else:
-        take_off_frame = False
+    #Save current frame
+    save_current_frame = current_frame
+    current_frame = Frame.copy(save_current_frame)
+
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
 
+    def get_obj_rotated_point(obj:Sprite):
+        """Get save data position (center or specified save point)"""
+        try: #Specified center point
+            rot_center = (pygame.Vector2(sprites[obj.name][1])*SCALE).rotate(obj.get_full_rot()-obj.rot)
+        except: #No specified center point (take actual center)
+            rot_center = pygame.Vector2(obj.img.get_rect().center).rotate(obj.get_full_rot()-obj.rot)
+        pos = obj.get_partial_rot_data()[1]
+        return [pos[0]+rot_center[0], pos[1]+rot_center[1]]
+
     #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
-    origin = torso.get_partial_rot_data()[1]
+    origin = get_obj_rotated_point(torso)
+
     for frame in frames:
         current_frame = frame
         #Loop through objects while filtering out any removed objects
         for j, objects in enumerate(list(filter(lambda o: o.name not in removed, frame.objects))):
             #Find the rotated data of the object
-            obj_pos = objects.get_partial_rot_data()[1]
+            obj_pos = get_obj_rotated_point(objects)
             obj_data = {
-                "pos" : [(obj_pos[0]-origin[0])/SCALE, (obj_pos[1]-origin[1])/SCALE],
-                "rot" : objects.get_full_rot(),
-                "seq" : j
+                "pos" : [round((obj_pos[0]-origin[0])/SCALE,2), round((obj_pos[1]-origin[1])/SCALE,2)],
+                "rot" : round(objects.get_full_rot(),2),
+                "seq" : j,
+                "offset vector rot" : round(objects.get_full_rot()-objects.rot,2)
             }
             #Add obj frame data to save data
             if objects.name in save_data:
@@ -594,9 +601,7 @@ def save():
     #Save data to file
     with open(filename, "w") as file:
         custom_dump(save_data, file)
-    current_frame = frames[0]
-    if take_off_frame:
-        frames = frames[1:]
+    current_frame = save_current_frame
 
 def get_possible_sprites():
     return list(filter(lambda x: x.highlighted, current_frame.objects))
@@ -679,6 +684,10 @@ while running:
             #Show first frame as a translucent overlay
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
+                if editing:
+                    onion_skin(onion_layer, editing_frame_index)
+                else:
+                    onion_skin(onion_layer)
             #Change layer order
             elif event.key in [pygame.K_UP, pygame.K_DOWN] and not keys[pygame.K_LSHIFT]:
                 possible_sprites = get_possible_sprites()
@@ -828,12 +837,10 @@ while running:
 pygame.display.quit()
 
 
-"""Should have correct hitboxes set (IMPORTANT to have rotations reset/parent offsets re-made) after rotating for children and parents.
-
+"""
 You could, at some point, make extra anim objects like smear frames but this should be a final touch.
 
 Possibility for other helpful changes such as objects retaining motion through frames, but would be hard to implement now.
-Need to update documentation (include the two other variants of this code if useful).
 Implement this animation system into the rest of the game:
  - have the animations referenced wherever necessary in weapon files, but also specified somewhere else for constant anims e.g. walking
 """
