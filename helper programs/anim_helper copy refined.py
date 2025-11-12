@@ -290,13 +290,13 @@ sprites = {
 
 #Store sprite, pos, rect
 objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
-           Sprite("head", sprites["head"][0], [200,0], 0),  
-           Sprite("left foot", sprites["left foot"][0], [300,0], 0), 
-           Sprite("right foot", sprites["right foot"][0], [300,50], 0), 
-           Sprite("left hand", sprites["left hand"][0], [400, 0], 0), 
-           Sprite("right hand", sprites["right hand"][0], [400, 50], 0),
-           Sprite("left melee", sprites["left melee"][0], [500, 0], 0),
-           Sprite("right melee", sprites["right melee"][0], [500, 200], 0)]
+           Sprite("head", sprites["head"][0], [20*SCALE,0], 0),  
+           Sprite("left foot", sprites["left foot"][0], [30*SCALE,0], 0), 
+           Sprite("right foot", sprites["right foot"][0], [30*SCALE,5*SCALE], 0), 
+           Sprite("left hand", sprites["left hand"][0], [40*SCALE, 0], 0), 
+           Sprite("right hand", sprites["right hand"][0], [40*SCALE, 5*SCALE], 0),
+           Sprite("left melee", sprites["left melee"][0], [50*SCALE, 0], 0),
+           Sprite("right melee", sprites["right melee"][0], [50*SCALE, 20*SCALE], 0)]
 
 
 frames:list[Frame] = []
@@ -474,9 +474,6 @@ def blit_frame_num(surface, color):
         text = f"{len(frames)+1}/{len(frames)+1}"
     surface.blit(font.render(text, True, color), [0,0])
 
-    surface.blit(font.render(str([round(obj.rot) for obj in current_frame.objects]), True, color), [0,800])
-    surface.blit(font.render(str([obj.pos for obj in current_frame.objects]), True, color), [0,825])
-
 def draw_child_relations(surface):
     for i, child_parent_names in enumerate([[objects.name, objects.parent] for objects in current_frame.objects]):
         try:
@@ -626,7 +623,7 @@ while running:
             if event.key == pygame.K_DELETE:
                 running = False
             #Show/hide text
-            elif event.key == pygame.K_s:
+            elif event.key == pygame.K_s and not keys[pygame.K_LCTRL]:
                 render_text = not render_text
             #Create a frame (animating mode)
             elif event.key == pygame.K_RETURN and not editing and not anim_playing:
