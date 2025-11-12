@@ -407,20 +407,20 @@ def load_anim():
         for sprite_data in list(anim_data.items()):
             name, data = sprite_data
             frame_data = data[frame_num]
+            #Get pos
             relative_pos = frame_data["pos"]
             real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
+            #Get rit
             rotation = frame_data["rot"]
+            #Get seq
             index = frame_data["seq"]
-            try:
-                vec_rot = frame_data["offset vector rot"]
-                objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
-                try:
-                    relative_center = (pygame.Vector2(sprites[name][1])*SCALE).rotate(vec_rot)
-                except:
-                    relative_center = pygame.Vector2(objects[index].img.get_rect().center).rotate(vec_rot)
-            except:
-                objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
-                relative_center = pygame.Vector2([0,0])
+            #Get relative save point, then subtract it from pos to get the true position
+            vec_rot = frame_data["offset vector rot"]
+            objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
+            try: #specified save point
+                relative_center = (pygame.Vector2(sprites[name][1])*SCALE).rotate(vec_rot)
+            except: #unspecified save point
+                relative_center = pygame.Vector2(objects[index].img.get_rect().center).rotate(vec_rot)
             objects[index].pos = -relative_center + real_pos
         return objects
 
