@@ -20,7 +20,7 @@ dir = os.getcwd()
 filename = os.path.join(dir, "anim_data_refined.json")
 
 #By how much sprites are scaled up, and then positions are scaled down for saving
-SCALE = 10
+SCALE = 15
 
 def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
     """Use to write data to a json file with a custom formatting.
@@ -343,7 +343,15 @@ def create_frame():
     frames = [copy_frame] + frames
     onion_skin(onion_layer)
 
-def onion_skin(surface:pygame.Surface, current_index=-1):
+def insert_frame(index):
+    """Copies the current frame to the frame list, inserts it at index.
+    """
+    global frames
+    copy_frame = Frame.copy(current_frame)
+    frames.insert(index, copy_frame)
+    onion_skin(onion_layer)
+
+def onion_skin(surface:pygame.Surface):
     """Draws onion skin layers onto surface (after clearing surface first).
     """
     global current_frame
@@ -353,7 +361,12 @@ def onion_skin(surface:pygame.Surface, current_index=-1):
     #but using a copy and re-saving the original because this means the objects the user has selected stay selected.
     save_current_frame = current_frame
     current_frame = Frame.copy(save_current_frame)
-    select_frames = frames[current_index+1:current_index+1+num_skin_layers]
+
+    if editing:
+        select_frames = frames[editing_frame_index+1:editing_frame_index+1+num_skin_layers]+[frames[max(editing_frame_index-1,0)]]
+    else:
+        select_frames = frames[0:num_skin_layers]
+    
     for i, frame in enumerate(select_frames):
         current_frame = frame
         frame.draw(surface, 90-60*i/num_skin_layers)
@@ -387,7 +400,7 @@ def set_mode(mode_name):
         mode_color = mode_colors["edit"]
         editing_frame_index = 0
         fps = 100
-        onion_skin(onion_layer, editing_frame_index)
+        onion_skin(onion_layer)
     elif mode_name == "animating":
         editing = False
         anim_playing = False
@@ -628,6 +641,8 @@ while running:
             #Create a frame (animating mode)
             elif event.key == pygame.K_RETURN and not editing and not anim_playing:
                 create_frame()
+            elif event.key == pygame.K_RETURN and editing:
+                insert_frame(editing_frame_index+1)
             #Play animation/stop animation
             elif event.key == pygame.K_SPACE:
                 if anim_playing:
@@ -672,19 +687,16 @@ while running:
             elif event.key == pygame.K_LEFT and editing:
                 editing_frame_index = min(editing_frame_index+1, len(frames)-1)
                 current_frame = frames[editing_frame_index]
-                onion_skin(onion_layer, editing_frame_index)
+                onion_skin(onion_layer)
             #Go forward 1 frame (edit mode)
             elif event.key == pygame.K_RIGHT and editing:
                 editing_frame_index = max(editing_frame_index-1, 0)
                 current_frame = frames[editing_frame_index]
-                onion_skin(onion_layer, editing_frame_index)
+                onion_skin(onion_layer)
             #Show first frame as a translucent overlay
             elif event.key == pygame.K_f and not anim_playing:
                 show_first_frame = not show_first_frame
-                if editing:
-                    onion_skin(onion_layer, editing_frame_index)
-                else:
-                    onion_skin(onion_layer)
+                onion_skin(onion_layer)
             #Change layer order
             elif event.key in [pygame.K_UP, pygame.K_DOWN] and not keys[pygame.K_LSHIFT]:
                 possible_sprites = get_possible_sprites()
@@ -760,10 +772,7 @@ while running:
                 difference = 1 if event.key == pygame.K_UP else -1
             num_skin_layers = min(len(frames) ,max(0, num_skin_layers+difference))
             #Redraw onion skins (to include new layer/exclude old layer)
-            if editing:
-                onion_skin(onion_layer, editing_frame_index)
-            else:
-                onion_skin(onion_layer)
+            onion_skin(onion_layer)
 
     #Save
     if keys[pygame.K_LCTRL] and keys[pygame.K_s]:
