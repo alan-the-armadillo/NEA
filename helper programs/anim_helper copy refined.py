@@ -355,6 +355,8 @@ def onion_skin(surface:pygame.Surface):
     """Draws onion skin layers onto surface (after clearing surface first).
     """
     global current_frame
+    if num_skin_layers == 0:
+        return
     surface.fill(0)
     #Save current frame and save a copy to the current frame variable
     #This means that the current frame positions and rotations can be used for parenting
@@ -384,7 +386,7 @@ def set_mode(mode_name):
     if anim_playing and mode_name != "playing":
         current_frame = save_current_frame 
     if editing and mode_name != "editing":
-        current_frame = frames[0]
+        current_frame = save_current_frame = Frame.copy(current_frame)
         frames = frames[1:]
     if mode_name == "playing":
         anim_playing = True
@@ -396,6 +398,7 @@ def set_mode(mode_name):
     elif mode_name == "editing":
         frames = [current_frame] + frames
         editing = True
+        save_current_frame = Frame.copy(current_frame)
         anim_playing = False
         mode_color = mode_colors["edit"]
         editing_frame_index = 0

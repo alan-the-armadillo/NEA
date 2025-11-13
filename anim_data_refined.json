@@ -1,30 +1,4 @@
 {
-    "base": {
-        "left melee": [
-            {"pos": [10.6, 4.6], "rot": 0, "seq": 0, "offset vector rot": 0}
-        ],
-        "left hand": [
-            {"pos": [11.1, 5.6], "rot": 0, "seq": 1, "offset vector rot": 0}
-        ],
-        "torso": [
-            {"pos": [0.0, 0.0], "rot": 0, "seq": 2, "offset vector rot": 0}
-        ],
-        "head": [
-            {"pos": [-0.9, -12.7], "rot": 0, "seq": 3, "offset vector rot": 0}
-        ],
-        "left foot": [
-            {"pos": [7.1, 18.2], "rot": 0, "seq": 4, "offset vector rot": 0}
-        ],
-        "right foot": [
-            {"pos": [-6.1, 19.7], "rot": 0, "seq": 5, "offset vector rot": 0}
-        ],
-        "right melee": [
-            {"pos": [-11.9, 5.2], "rot": 0, "seq": 6, "offset vector rot": 0}
-        ],
-        "right hand": [
-            {"pos": [-11.5, 5.8], "rot": 0, "seq": 7, "offset vector rot": 0}
-        ]
-    },
     "wave": {
         "torso": [
             {"pos": [0.0, 0.0], "rot": 0, "seq": 0, "offset vector rot": 0},
@@ -417,6 +391,162 @@
             {"pos": [-11.5, 5.8], "rot": 0, "seq": 5, "offset vector rot": 0},
             {"pos": [-11.5, 5.8], "rot": 0, "seq": 5, "offset vector rot": 0},
             {"pos": [-11.5, 5.8], "rot": 0, "seq": 5, "offset vector rot": 0}
+        ]
+    },
+    "base": {
+        "left melee": [
+            {"pos": [12.37, 5.7], "rot": 0, "seq": 0, "offset vector rot": 0}
+        ],
+        "left hand": [
+            {"pos": [12.93, 6.73], "rot": 0, "seq": 1, "offset vector rot": 0}
+        ],
+        "torso": [
+            {"pos": [0.0, 0.0], "rot": 0, "seq": 2, "offset vector rot": 0}
+        ],
+        "head": [
+            {"pos": [-0.87, -12.67], "rot": 0, "seq": 3, "offset vector rot": 0}
+        ],
+        "left foot": [
+            {"pos": [7.1, 22.87], "rot": 0, "seq": 4, "offset vector rot": 0}
+        ],
+        "right foot": [
+            {"pos": [-6.1, 24.37], "rot": 0, "seq": 5, "offset vector rot": 0}
+        ],
+        "right melee": [
+            {"pos": [-13.23, 5.97], "rot": 0, "seq": 6, "offset vector rot": 0}
+        ],
+        "right hand": [
+            {"pos": [-12.8, 6.6], "rot": 0, "seq": 7, "offset vector rot": 0}
+        ]
+    },
+    "walk": {
+        "left melee": [
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [12.24, 6.03], "rot": 0, "seq": 0, "offset vector rot": 0}
+        ],
+        "left hand": [
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0},
+            {"pos": [12.8, 7.06], "rot": 0, "seq": 1, "offset vector rot": 0}
+        ],
+        "torso": [
+            {"pos": [-0.06, 1.14], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.13, 2.53], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.07, 3.33], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.07, 2.4], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, 0.46], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, -0.27], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, 0.0], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.06, 1.14], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.13, 2.53], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.07, 3.33], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [-0.07, 2.4], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, 0.46], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, -0.27], "rot": 0, "seq": 2, "offset vector rot": 0},
+            {"pos": [0.0, 0.0], "rot": 0, "seq": 2, "offset vector rot": 0}
+        ],
+        "head": [
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0},
+            {"pos": [-1.0, -12.34], "rot": 0, "seq": 3, "offset vector rot": 0}
+        ],
+        "left foot": [
+            {"pos": [10.5, 19.6], "rot": -340.76, "seq": 4, "offset vector rot": 0.0},
+            {"pos": [8.57, 22.4], "rot": -357.88, "seq": 4, "offset vector rot": 0.0},
+            {"pos": [7.03, 24.07], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [4.7, 24.13], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [0.3, 24.2], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [-3.63, 24.27], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [-5.23, 24.27], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [-6.63, 24.3], "rot": 352.57, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-8.57, 23.97], "rot": 320.24, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-9.5, 23.63], "rot": 1030.57, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-8.3, 20.5], "rot": 1015.96, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-2.77, 16.3], "rot": 679.51, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [5.3, 15.83], "rot": 699.46, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [9.3, 17.3], "rot": 722.74, "seq": 5, "offset vector rot": 0.0}
+        ],
+        "right foot": [
+            {"pos": [-6.63, 24.3], "rot": 352.57, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-8.57, 23.97], "rot": 320.24, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-9.5, 23.63], "rot": 1030.57, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-8.3, 20.5], "rot": 1015.96, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [-2.77, 16.3], "rot": 679.51, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [5.3, 15.83], "rot": 699.46, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [9.3, 17.3], "rot": 722.74, "seq": 5, "offset vector rot": 0.0},
+            {"pos": [10.5, 19.6], "rot": -340.76, "seq": 4, "offset vector rot": 0.0},
+            {"pos": [8.57, 22.4], "rot": -357.88, "seq": 4, "offset vector rot": 0.0},
+            {"pos": [7.03, 24.07], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [4.7, 24.13], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [0.3, 24.2], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [-3.63, 24.27], "rot": 0, "seq": 4, "offset vector rot": 0},
+            {"pos": [-5.23, 24.27], "rot": 0, "seq": 4, "offset vector rot": 0}
+        ],
+        "right melee": [
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0},
+            {"pos": [-13.36, 6.3], "rot": 0, "seq": 6, "offset vector rot": 0}
+        ],
+        "right hand": [
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0},
+            {"pos": [-12.93, 6.93], "rot": 0, "seq": 7, "offset vector rot": 0}
         ]
     }
 }
