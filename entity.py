@@ -5,6 +5,8 @@ class Entity:
     def __init__(self, pos):
         self.collider = EntityCollider(pos, [50,50])
 
+        self.direction = True
+
         self.__unscaled_motion_vector = pygame.Vector2()
         self.__sub_motion_vector = pygame.Vector2()
     
@@ -30,12 +32,19 @@ class Entity:
             return self.collider.move_and_collide(remainder_vector)
         return self.collider.rect.center
 
+    def update_direction(self):
+        if self.__sub_motion_vector.x < 0:
+            self.direction = False
+        elif self.__sub_motion_vector.x > 0:
+            self.direction = True
+
     def add_to_motion_vector(self, adding_vector:list):
         """Adds adding_vector to this entity's __motion_vector, and then bounds it to a certain length."""
         self.__unscaled_motion_vector += adding_vector
         self.__sub_motion_vector = self.__unscaled_motion_vector.copy()
         if self.__unscaled_motion_vector != [0,0]:
             self.__sub_motion_vector.scale_to_length(Entity.sub_motion)
+        self.update_direction()
     
     def update_motion_vector(self, new_vector:list):
         """Assigns new_vector to this entity's motion_vector."""
@@ -43,3 +52,4 @@ class Entity:
         self.__sub_motion_vector = self.__unscaled_motion_vector.copy()
         if self.__unscaled_motion_vector != [0,0]:
             self.__sub_motion_vector.scale_to_length(Entity.sub_motion)
+        self.update_direction()

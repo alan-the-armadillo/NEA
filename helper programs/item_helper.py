@@ -1,6 +1,5 @@
 import json
 
-
 print("\n\nThis program allows you as a user to add items to the item json file.\n\
 This json file is a database to store information on all items, and may be\n\
 referenced in other json files such as loot tables.\n\
@@ -76,11 +75,12 @@ while running:
                 continue
         else:
             got_boosts = True
-    
+    img_name = input("sprite image name: ")
     item_data = {
         "type" : item_type,
         "name" : name,
         "stat boosts" : stat_boosts,
+        "img" : img_name
     }
 
     if item_type == "Limb":

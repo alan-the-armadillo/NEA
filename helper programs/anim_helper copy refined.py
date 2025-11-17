@@ -4,7 +4,7 @@ import json
 import time
 from copy import copy
 pygame.font.init()
-font = pygame.font.SysFont("consolas", 20)
+font = pygame.font.SysFont("consolas", 50)
 
 import math
 
@@ -17,7 +17,7 @@ def make_display():
 make_display()
 
 dir = os.getcwd()
-filename = os.path.join(dir, "test anim.json")
+filename = os.path.join(dir, "anim_data_refined.json")
 
 #By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 15
@@ -280,8 +280,8 @@ def draw_text_overlay(surface:pygame.Surface):
 sprites = {
     "head" : ["debug_head.png"],
     "torso" : ["debug_torso.png"],
-    "left foot" : ["debug_foot.png"],
-    "right foot" : ["debug_foot.png"],
+    "left foot" : ["debug_foot.png", [3,4]],
+    "right foot" : ["debug_foot.png", [3,4]],
     "left hand" : ["debug_hand.png"],
     "right hand" : ["debug_hand.png"],
     "left melee" : ["debug_melee.png", [4,13]],
@@ -296,7 +296,8 @@ objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
            Sprite("left hand", sprites["left hand"][0], [40*SCALE, 0], 0), 
            Sprite("right hand", sprites["right hand"][0], [40*SCALE, 5*SCALE], 0),
            Sprite("left melee", sprites["left melee"][0], [50*SCALE, 0], 0),
-           Sprite("right melee", sprites["right melee"][0], [50*SCALE, 20*SCALE], 0)]
+           Sprite("right melee", sprites["right melee"][0], [50*SCALE, 20*SCALE], 0)
+           ]
 
 
 frames:list[Frame] = []
@@ -418,27 +419,31 @@ def load_anim():
     """
     def load_sprites(anim_data:dict, frame_num:int):
         """Loads all sprite data for a specific frame."""
-        objects = [None for _ in range(len(anim_data))]
+        loading_objects = [None for _ in range(len(anim_data))]
         width, height = display.get_width()/2, display.get_height()/2
         for sprite_data in list(anim_data.items()):
             name, data = sprite_data
+            if name not in [o.name for o in objects]:
+                continue
             frame_data = data[frame_num]
             #Get pos
             relative_pos = frame_data["pos"]
             real_pos = relative_pos[0]*SCALE+width, relative_pos[1]*SCALE+height
-            #Get rit
+            #Get rot
             rotation = frame_data["rot"]
             #Get seq
             index = frame_data["seq"]
             #Get relative save point, then subtract it from pos to get the true position
             vec_rot = frame_data["offset vector rot"]
-            objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
+            loading_objects[index] = Sprite(name, sprites[name][0], real_pos, rotation)
             try: #specified save point
                 relative_center = (pygame.Vector2(sprites[name][1])*SCALE).rotate(vec_rot)
             except: #unspecified save point
-                relative_center = pygame.Vector2(objects[index].img.get_rect().center).rotate(vec_rot)
-            objects[index].pos = -relative_center + real_pos
-        return objects
+                relative_center = pygame.Vector2(loading_objects[index].img.get_rect().center).rotate(vec_rot)
+            loading_objects[index].pos = -relative_center + real_pos
+        while None in loading_objects:
+            loading_objects.remove(None)
+        return loading_objects
 
     global frames, current_frame
     print("\nWARNING:  LOADING A NEW ANIM NOW WILL ERASE THE CURRET ANIMATION.")

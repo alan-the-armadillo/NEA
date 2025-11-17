@@ -2,6 +2,8 @@ from typing import Tuple
 import os
 from datetime import datetime
 
+import json
+
 import pygame
 import pygame.font
 pygame.font.init()
@@ -9,10 +11,11 @@ font = pygame.font.SysFont("consolas", 50)
 
 from hitbox import *
 from enemy import Enemy
+from player import Player
 from map import Map
 
 class Renderer:
-    def __init__(self, window_size:Tuple[int, int]|str):
+    def __init__(self, window_size:Tuple[int, int]|str, player:Player):
         if window_size == "fullscreen":
             pygame.display.init()
             size = pygame.display.get_desktop_sizes()[0]
@@ -29,6 +32,9 @@ class Renderer:
         self.map = pygame.Surface([size[1]/3, size[1]/3])
         self.overlay = pygame.Surface(size, pygame.SRCALPHA)
         self.center = pygame.Vector2(size[0]/2, size[1]/2)
+
+        self.player = player
+        self.player_renderer = PlayerRenderer(player, "walk")
 
         self.screenshot_life = 0
         self.screenshot_clock = pygame.time.Clock()
@@ -81,7 +87,7 @@ class Renderer:
                             pygame.draw.rect(self.map, color, pygame.Rect(door_locations[n], door_dimensions[n]))
 
     def debug_render_room(self, colliders, interactors, map, current_pos):
-        self.world.fill(0)
+        self.world.fill([40,40,40])
         [pygame.draw.rect(self.world, [200,200,200], c.rect) for c in colliders]
         for n,i in enumerate(interactors):
             if i != None:
@@ -102,7 +108,7 @@ class Renderer:
             self.screenshot_clock.tick()
 
 
-    def debug_render_frame(self, player_collider:EntityCollider, player_interactor:PlayerInteractor, fps:float):
+    def debug_render_frame(self, fps:float):
         #Reset the frame
         self.display.fill(0)
         #Draw the background
@@ -111,6 +117,8 @@ class Renderer:
         for enemy in Enemy.all:
             pygame.draw.rect(self.world_fg, [255,20,50], enemy.collider.rect)
         #Highlight closest interactor
+        player_interactor = self.player.interactor
+        player_collider = self.player.collider
         if player_interactor.closest_interactor:
             rect = player_interactor.closest_interactor.rect
             pygame.draw.rect(self.world_fg, [255,255,255], pygame.Rect([rect.left-5, rect.top-5], [rect.width+10, rect.height+10]), 5)
@@ -119,9 +127,142 @@ class Renderer:
         pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
         #Draw player collider
         pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
+        
+        self.player_renderer.next_frame()
+        self.player_renderer.render_frame(self.display, self.center)
+        
         #Draw the map, fps and screenshot acknowledgement
         self.debug_render_overlay(fps)
         self.display.blit(self.overlay, [0,0])
         #Update the frame
         pygame.display.update()
 
+"""Need to create a method in PlayerRenderer that loads in an animation by name.
+It should load it in for the corresponding limbs with the corresponding data (single run is provided as parameter on top of anim name).
+Another function should be implemented to unload an animation, taking it off corresponding limbs.
+Also need to check the current code handles single runs.
+
+Loading and unloading means that, in the changing movement vector section of the player class (need to make one and then __super()__),
+the checks need to be made to add or remove animations from the list (done by comparing last motion vector to current motion vector).
+
+Also need to fix the issue with the screen, where wall colliders at the edge of the map are not rendered correctly due to the surface
+size being too small.
+
+AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
+"""
+
+class PlayerRenderer():
+    SCALE = 5
+    FPS = 0.01
+    SPF = 1/FPS
+    with open("anim_data_refined.json", "r") as file:
+        animation_data = json.load(file)
+    with open("sprite_offsets.json", "r") as file:
+        offset_data = json.load(file)
+    def __init__(self, player:Player, anim):
+        self.player = player
+        # [anim_name, frame_number, single_run]
+        self.anims = {
+            "head" : [[anim,0,False]],
+            "torso" : [[anim,0,False]],
+            "left foot" : [[anim,0,False]],
+            "right foot" : [[anim,0,False]],
+            "left hand" : [[anim,0,False]],
+            "right hand" : [[anim,0,False]],
+            "left melee" : [[anim,0,False]],
+            "right melee" : [[anim,0,False]]
+        }
+        # [frame data]
+        self.cache = {
+            "head" : {},
+            "torso" : {},
+            "left foot" : {},
+            "right foot" : {},
+            "left hand" : {},
+            "right hand" : {},
+            "left melee" : {},
+            "right melee" : {}
+        }
+        # [clock, time since last frame]
+        self.timing = {
+            "head" : [pygame.time.Clock(), 0],
+            "torso" : [pygame.time.Clock(), 0],
+            "left foot" : [pygame.time.Clock(), 0],
+            "right foot" : [pygame.time.Clock(), 0],
+            "left hand" : [pygame.time.Clock(), 0],
+            "right hand" : [pygame.time.Clock(), 0],
+            "left melee" : [pygame.time.Clock(), 0],
+            "right melee" : [pygame.time.Clock(), 0],
+        }
+
+    ##########PROBLEM: THIS WILL ONLY WORK CACHING IF YOU REPLACE SELF.PLAYER.INTERACTOR.RECT.CENTER
+    #THIS IS BECAUSE THE PLAYER WILL MOVE BUT THE POSITION WILL NOT
+    #YOU NEED TO STORE RELATIVE POSITION EVEN THEN, AND THEN ADD THE PLAYER POSITION AS YOU GET TO THE FRAME
+    def load_frame(self, limb_name, anim):
+        """Loads in object for a frame.
+        Returns [relative position (to pos), rotation, sequence, img]."""
+        #Get frame data
+        frame_data = PlayerRenderer.animation_data[anim[0]][limb_name][anim[1]]
+        #Retrieve data
+        relative_pos, rot, seq, vec_rot = frame_data["pos"], frame_data["rot"], frame_data["seq"], frame_data["offset vector rot"]
+        #Format and calculate useful data
+        real_pos = relative_pos[0]*self.SCALE, relative_pos[1]*self.SCALE
+        #Img
+        img = pygame.transform.scale_by(self.player.inventory[limb_name].img, PlayerRenderer.SCALE)
+        img_name = self.player.inventory[limb_name].data["img"]
+        if img_name in PlayerRenderer.offset_data:
+            relative_center = (pygame.Vector2(PlayerRenderer.offset_data[img_name])*self.SCALE).rotate(vec_rot)
+        else:
+            relative_center = pygame.Vector2(img.get_rect().center).rotate(vec_rot)
+        #Relative positino
+        true_pos = -relative_center + real_pos
+        return [true_pos, rot, seq, img]
+    
+    def next_frame(self):
+        """DOES NOT YET ALLOW FOR SPRITES WITH THEIR OWN SPRITE SHEETS.
+        Checks to see if limb animations should be progressed and, if so, progresses them.
+        """
+        #Loop through limbs
+        for limb_name in self.anims:
+            #Tick clock
+            self.timing[limb_name][1] += self.timing[limb_name][0].tick()
+            #If at next FPS time (ergo next frame should be shown)
+            if self.timing[limb_name][1] >= PlayerRenderer.SPF:
+                self.timing[limb_name][1] = 0
+                #Increment frame number
+                self.anims[limb_name][0][1] += 1
+                #If the animation has now ended
+                if len(PlayerRenderer.animation_data[self.anims[limb_name][0][0]][limb_name]) == self.anims[limb_name][0][1]:
+                    if self.anims[limb_name][0][2]: #Not looping
+                        self.anims[limb_name] = self.anims[limb_name][1:]
+                    else: #Looping
+                        self.anims[limb_name][0][1] = 1
+
+    def render_frame(self, surface, player_pos):
+        render_data = []
+        for limb_name, limb_data in list(self.anims.items()):
+            #Loads cached sprite frame if existing
+            if limb_data[0][0] + f"FRAME{limb_data[0][1]}" in self.cache[limb_name]:
+                rel_pos, rotated_img, seq = self.cache[limb_name][limb_data[0][0] + f"FRAME{limb_data[0][1]}"]
+            #Otherwise, creates the sprite frame, then caches it
+            else:
+                frame_data = self.load_frame(limb_name, limb_data[0])
+                ############# ISSUE MAY ARISE IF PLAYER POS IS CENTRE OF TORSO RATHER THAN TOPLEFT
+                #Rotated image
+                rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
+                seq = frame_data[2]
+                #Cache [pos, img] for the specific frame
+                rect = frame_data[3].get_rect(topleft = frame_data[0])
+                #Use this pos to keep rotation central
+                rel_pos = rotated_img.get_rect(center=rect.center).topleft
+                self.cache[limb_name].update({limb_data[0][0]+f"FRAME{limb_data[0][1]}":[rel_pos, rotated_img, seq]})
+
+            if self.player.direction:
+                true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
+            else:
+                true_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
+                rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
+            render_data.append([rotated_img, true_pos, seq])
+        render_data = sorted(render_data, key=lambda o:o[2])
+        for limb in render_data:
+            surface.blit(limb[0], limb[1])

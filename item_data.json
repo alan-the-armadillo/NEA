@@ -3,25 +3,29 @@
         "type": "Limb",
         "name": "Basic Torso",
         "stat boosts": [],
-        "slot": "Torso"
+        "slot": "Torso",
+        "img" : "debug_torso.png"
     },
     "l1": {
         "type": "Limb",
         "name": "Basic Head",
         "stat boosts": [],
-        "slot": "Head"
+        "slot": "Head",
+        "img" : "debug_head.png"
     },
     "l2": {
         "type": "Limb",
         "name": "Basic Hand",
         "stat boosts": [],
-        "slot": "Hand"
+        "slot": "Hand",
+        "img" : "debug_hand.png"
     },
     "l3": {
         "type": "Limb",
         "name": "Basic Foot",
         "stat boosts": [],
-        "slot": "Foot"
+        "slot": "Foot",
+        "img" : "debug_foot.png"
     },
     "w0": {
         "type": "Weapon",
@@ -29,7 +33,8 @@
         "stat boosts": [],
         "base damage": 3.0,
         "weapon type": "Melee",
-        "slot size": "1"
+        "slot size": "1",
+        "img" : "debug_melee.png"
     },
     "w1": {
         "type": "Weapon",

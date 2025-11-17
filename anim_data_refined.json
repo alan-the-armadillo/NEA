@@ -236,5 +236,33 @@
             {"pos": [-13.0, 9.47], "rot": 34.59, "seq": 7, "offset vector rot": 0.0},
             {"pos": [-12.93, 5.0], "rot": -307.48, "seq": 7, "offset vector rot": 0.0}
         ]
+    },
+    "test": {
+        "right foot": [
+            {"pos": [-7.63, 27.77], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.1, 27.77], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-6.9, 27.77], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-6.5, 27.77], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-5.83, 27.57], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-5.37, 26.77], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-5.5, 24.97], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-6.37, 24.17], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.83, 24.04], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.03, 24.37], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.77, 25.44], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.83, 26.57], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.7, 27.24], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.7, 27.57], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.57, 27.7], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-9.23, 27.3], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-8.9, 27.1], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-8.23, 26.9], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.83, 27.24], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.7, 27.37], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.63, 27.44], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.5, 27.64], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.5, 27.7], "rot": 0, "seq": 0, "offset vector rot": 0},
+            {"pos": [-7.5, 27.77], "rot": 0, "seq": 0, "offset vector rot": 0}
+        ]
     }
 }

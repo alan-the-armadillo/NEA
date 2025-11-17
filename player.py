@@ -3,6 +3,7 @@ from typing import overload
 
 from hitbox import *
 from entity import Entity
+from item import Limb, Weapon
 
 class Player(Entity):
     def __init__(self, pos):
@@ -14,12 +15,14 @@ class Player(Entity):
         self.SPD = 5
 
         self.inventory = { ###########WORK ON INVENTORY AND ITEMS NEXT (stats will also be worked on in the process)
-            "head" : None,
-            "torso" : None,
-            "lhand" : None,
-            "rhand" : None,
-            "lfoot" : None,
-            "rfoot" : None
+            "torso" : Limb("l0"),
+            "head" : Limb("l1"),
+            "left hand" : Limb("l2"),
+            "right hand" : Limb("l2"),
+            "left foot" : Limb("l3"),
+            "right foot" : Limb("l3"),
+            "left melee" : Weapon("w0"),
+            "right melee" : Weapon("w0")
         }
     
     def update_position(self, new_pos):

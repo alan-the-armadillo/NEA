@@ -11,10 +11,10 @@ class Game:
     def __init__(self):
         self.map = Map(5)
         self.current_pos = [self.map.center[0], self.map.center[1]]
-        self.renderer = Renderer("fullscreen")#([16*102, 9*102])
         #Temporary section to set player's position to within the room
-        self.test_run()
         self.player = Player([0,0])
+        self.renderer = Renderer("fullscreen",self.player)#([16*102, 9*102])
+        self.test_run()
         curr_room = self.map.rooms[self.current_pos[0]][self.current_pos[1]]
         door = curr_room.door_interactors[0]
         door_rect = door.rect
@@ -107,6 +107,6 @@ while running:
 
     Enemy.update_all()
 
-    g.renderer.debug_render_frame(g.player.collider, g.player.interactor, clock.get_fps())
+    g.renderer.debug_render_frame(clock.get_fps())
     
     clock.tick(100)
