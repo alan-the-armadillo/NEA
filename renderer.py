@@ -143,9 +143,11 @@ Need to create a method in PlayerRenderer that loads in an animation by name.
 It should load it in for the corresponding limbs with the corresponding data (single run is provided as parameter on top of anim name).
 Another function should be implemented to unload an animation, taking it off corresponding limbs.
 Also need to check the current code handles single runs.
-
 Loading and unloading means that, in the changing movement vector section of the player class (need to make one and then __super()__),
 the checks need to be made to add or remove animations from the list (done by comparing last motion vector to current motion vector).
+
+There seems to be an issue with creating frames, such that, during testing, frames were being created (significantly less than those being loaded in)
+when really no frames should have been created since it was loading a repeated animation.
 
 Also need to fix the issue with the screen, where wall colliders at the edge of the map are not rendered correctly due to the surface
 size being too small. It works on a larger monitor because the surface fits the monitor. You need to ensure the surface will be able
@@ -153,7 +155,10 @@ to fit any map area, regardless of screen size.
 
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
 
-Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox. Not sure on this one.
+Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox.
+OR! put the collision hitbox at the player's feet/blit the player such that the feet are at the bottom. This will either require a total
+system change to better the efficiency so it saves limbs in relation to the base feet position, or ignore efficiency and go for current model
+(would prefer efficiency due to how much this system is going to work during gameplay).
 
 ALSO I think there is an issue with the walk animation (jitteriness likely at the end/start)
 """
