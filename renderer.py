@@ -159,14 +159,12 @@ Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad 
 OR! put the collision hitbox at the player's feet/blit the player such that the feet are at the bottom. This will either require a total
 system change to better the efficiency so it saves limbs in relation to the base feet position, or ignore efficiency and go for current model
 (would prefer efficiency due to how much this system is going to work during gameplay).
-
-ALSO I think there is an issue with the walk animation (jitteriness likely at the end/start)
 """
 
 class PlayerRenderer():
     SCALE = 5
-    FPS = 0.01
-    SPF = 1/FPS
+    FPS = 12
+    MSPF = 1000/FPS
     with open("anim_data_refined.json", "r") as file:
         animation_data = json.load(file)
     with open("sprite_offsets.json", "r") as file:
@@ -239,7 +237,7 @@ class PlayerRenderer():
             #Tick clock
             self.timing[limb_name][1] += self.timing[limb_name][0].tick()
             #If at next FPS time (ergo next frame should be shown)
-            if self.timing[limb_name][1] >= PlayerRenderer.SPF:
+            if self.timing[limb_name][1] >= PlayerRenderer.MSPF:
                 self.timing[limb_name][1] = 0
                 #Increment frame number
                 self.anims[limb_name][0][1] += 1
@@ -248,7 +246,7 @@ class PlayerRenderer():
                     if self.anims[limb_name][0][2]: #Not looping
                         self.anims[limb_name] = self.anims[limb_name][1:]
                     else: #Looping
-                        self.anims[limb_name][0][1] = 1
+                        self.anims[limb_name][0][1] = 0
 
     def render_frame(self, surface, player_pos):
         render_data = []
