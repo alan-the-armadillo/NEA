@@ -154,6 +154,8 @@ to fit any map area, regardless of screen size.
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
 
 Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox. Not sure on this one.
+
+ALSO I think there is an issue with the walk animation (jitteriness likely at the end/start)
 """
 
 class PlayerRenderer():
