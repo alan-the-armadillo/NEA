@@ -137,7 +137,9 @@ class Renderer:
         #Update the frame
         pygame.display.update()
 
-"""Need to create a method in PlayerRenderer that loads in an animation by name.
+""" ## In order of urgency ##
+
+Need to create a method in PlayerRenderer that loads in an animation by name.
 It should load it in for the corresponding limbs with the corresponding data (single run is provided as parameter on top of anim name).
 Another function should be implemented to unload an animation, taking it off corresponding limbs.
 Also need to check the current code handles single runs.
@@ -146,9 +148,12 @@ Loading and unloading means that, in the changing movement vector section of the
 the checks need to be made to add or remove animations from the list (done by comparing last motion vector to current motion vector).
 
 Also need to fix the issue with the screen, where wall colliders at the edge of the map are not rendered correctly due to the surface
-size being too small.
+size being too small. It works on a larger monitor because the surface fits the monitor. You need to ensure the surface will be able
+to fit any map area, regardless of screen size.
 
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
+
+Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox. Not sure on this one.
 """
 
 class PlayerRenderer():
