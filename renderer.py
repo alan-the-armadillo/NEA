@@ -157,16 +157,15 @@ class Renderer:
         pygame.display.update()
 
 """ ## In order of urgency ##
-Need to create renderer frame flags. This means that the renderer keeps track of the current frame of each animation rather
-rather than each limb keeping track. This is because, if an animation ends for some limbs and they return to the aniamtion
-the other limbs are using, then they will be offset because they will start at the frame after whichever frame they last used,
-which may not align with the frame being used by the rest of the body.
-
 Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
 
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
 
+Need to implement catch-up fixes. By this, I mean that, currently, limbs return to where the animation left off if the animation has just been loaded to a limb
+after being completely unloaded due to no limb using the animation. This may be a problem.
+
+Currently have implemented feet-level hitbox, but this note is worth keeping:
 Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox.
 OR! put the collision hitbox at the player's feet/blit the player such that the feet are at the bottom. This will either require a total
 system change to better the efficiency so it saves limbs in relation to the base feet position, or ignore efficiency and go for current model
@@ -184,16 +183,16 @@ class PlayerRenderer():
     def __init__(self, player:Player, anim):
         self.player = player
         self.player.renderer = self
-        # [anim_name, frame_number, single_run]
-        self.anims = {
-            "head" : [[anim,0,False]],
-            "torso" : [[anim,0,False]],
-            "left foot" : [[anim,0,False]],
-            "right foot" : [[anim,0,False]],
-            "left hand" : [[anim,0,False]],
-            "right hand" : [[anim,0,False]],
-            "left melee" : [[anim,0,False]],
-            "right melee" : [[anim,0,False]]
+
+        self.limbs = {
+            "head" : [anim],
+            "torso" : [anim],
+            "left foot" : [anim],
+            "right foot" : [anim],
+            "left hand" : [anim],
+            "right hand" : [anim],
+            "left melee" : [anim],
+            "right melee" : [anim],
         }
         # [frame data]
         self.cache = {
@@ -206,36 +205,29 @@ class PlayerRenderer():
             "left melee" : {},
             "right melee" : {}
         }
-        # [clock, time since last frame]
-        self.timing = {
-            "head" : [pygame.time.Clock(), 0],
-            "torso" : [pygame.time.Clock(), 0],
-            "left foot" : [pygame.time.Clock(), 0],
-            "right foot" : [pygame.time.Clock(), 0],
-            "left hand" : [pygame.time.Clock(), 0],
-            "right hand" : [pygame.time.Clock(), 0],
-            "left melee" : [pygame.time.Clock(), 0],
-            "right melee" : [pygame.time.Clock(), 0],
+        # [frame_num, clock, time since last frame, sing_run]
+        self.anims= {
+            anim : [0, pygame.time.Clock(), 0, False],
         }
 
     def load_anim(self, anim:str, single_run:bool, insert_index=0):
         anim_data = PlayerRenderer.animation_data[anim]
+        self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
         for limb_name in anim_data:
             if limb_name in self.player.inventory and self.player.inventory[limb_name]:
-                self.anims[limb_name].insert(insert_index, [anim, 0, single_run])
-                self.timing[limb_name][1] = 0
+                self.limbs[limb_name].insert(insert_index, anim)
 
     def unload_anim(self, anim:str):
         anim_data = PlayerRenderer.animation_data[anim]
+        self.anims.pop(anim)
         for limb_name in anim_data:
-            self.anims[limb_name] = list(filter(lambda l: l[0] != anim, self.anims[limb_name]))
-            self.timing[limb_name][1] = 0
+            self.limbs[limb_name].remove(anim)
 
     def load_frame(self, limb_name, anim):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
         #Get frame data
-        frame_data = PlayerRenderer.animation_data[anim[0]][limb_name][anim[1]]
+        frame_data = PlayerRenderer.animation_data[anim][limb_name][self.anims[anim][0]]
         #Retrieve data
         relative_pos, rot, seq, vec_rot = frame_data["pos"], frame_data["rot"], frame_data["seq"], frame_data["offset vector rot"]
         #Format and calculate useful data
@@ -255,32 +247,35 @@ class PlayerRenderer():
         """DOES NOT YET ALLOW FOR SPRITES WITH THEIR OWN SPRITE SHEETS.
         Checks to see if limb animations should be progressed and, if so, progresses them.
         """
-        #Loop through limbs
-        for limb_name in self.anims:
-            #Tick clock
-            self.timing[limb_name][1] += self.timing[limb_name][0].tick()
-            #If at next FPS time (ergo next frame should be shown)
-            if self.timing[limb_name][1] >= PlayerRenderer.MSPF:
-                self.timing[limb_name][1] = 0
-                #Increment frame number
-                self.anims[limb_name][0][1] += 1
-                #If the animation has now ended
-                if len(PlayerRenderer.animation_data[self.anims[limb_name][0][0]][limb_name]) == self.anims[limb_name][0][1]:
-                    if self.anims[limb_name][0][2]: #Not looping
-                        self.anims[limb_name] = self.anims[limb_name][1:]
-                    else: #Looping
-                        self.anims[limb_name][0][1] = 0
+        #Loop through animations:
+        for animation in self.anims:
+            #If showing this animation:
+            if any([animation==self.limbs[l][0] for l in self.limbs]):
+                #Tick clock
+                self.anims[animation][2] += self.anims[animation][1].tick()
+                #Next frame if necessary
+                if self.anims[animation][2] >= PlayerRenderer.MSPF:
+                    self.anims[animation][2] = 0
+                    self.anims[animation][0] += 1
+                    #If the animation has now ended
+                    if len(PlayerRenderer.animation_data[animation][list(PlayerRenderer.animation_data[animation].keys())[0]]) == self.anims[animation][0]:
+                        if self.anims[animation][3]: #Not looping
+                            self.unload_anim(animation)
+                        else: #Looping
+                            self.anims[animation][0] = 0
 
     def render_frame(self, surface, player_pos):
         offset = [0,-30*PlayerRenderer.SCALE+self.player.collider.rect.height]
         render_data = []
-        for limb_name, limb_data in list(self.anims.items()):
-            #Loads cached sprite frame if existing
-            if limb_data[0][0] + f"FRAME{limb_data[0][1]}" in self.cache[limb_name]:
-                rel_pos, rotated_img, seq = self.cache[limb_name][limb_data[0][0] + f"FRAME{limb_data[0][1]}"]
-            #Otherwise, creates the sprite frame, then caches it
+
+        for limb in self.limbs:
+            animation = self.limbs[limb][0]
+            #Loads if cached
+            if animation + f"FRAME{self.anims[animation][0]}" in self.cache[limb]:
+                rel_pos, rotated_img, seq = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"]
+            #Otherwise, creates frame
             else:
-                frame_data = self.load_frame(limb_name, limb_data[0])
+                frame_data = self.load_frame(limb, animation)
                 #Rotated image
                 rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
                 seq = frame_data[2]
@@ -288,7 +283,7 @@ class PlayerRenderer():
                 rect = frame_data[3].get_rect(topleft = frame_data[0])
                 #Use this pos to keep rotation central
                 rel_pos = rotated_img.get_rect(center=rect.center).topleft
-                self.cache[limb_name].update({limb_data[0][0]+f"FRAME{limb_data[0][1]}":[rel_pos, rotated_img, seq]})
+                self.cache[limb].update({animation + f"FRAME{self.anims[animation][0]}":[rel_pos, rotated_img, seq]})
 
             if self.player.direction:
                 true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
