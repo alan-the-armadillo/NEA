@@ -157,7 +157,10 @@ class Renderer:
         pygame.display.update()
 
 """ ## In order of urgency ##
-Test aniamtion insertion.
+Need to create renderer frame flags. This means that the renderer keeps track of the current frame of each animation rather
+rather than each limb keeping track. This is because, if an animation ends for some limbs and they return to the aniamtion
+the other limbs are using, then they will be offset because they will start at the frame after whichever frame they last used,
+which may not align with the frame being used by the rest of the body.
 
 Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).

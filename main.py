@@ -66,6 +66,8 @@ def get_player():
 with open("controls.json", "r") as file:
     controls = json.load(file)
 
+wild = False
+
 last_update = time.time()
 clock = pygame.time.Clock()
 running = True
@@ -86,6 +88,12 @@ while running:
                 running = False
             elif event.key == controls["prtscr"]:
                 g.renderer.screenshot()
+            elif event.key == pygame.K_b:
+                wild = not wild
+                if wild:
+                    g.renderer.player.renderer.load_anim("wild", False)
+                else:
+                    g.renderer.player.renderer.unload_anim("wild")
         elif event.type == pygame.KEYUP:
             if event.key == controls["down"]:
                 g.player.add_to_motion_vector([0,-1])
