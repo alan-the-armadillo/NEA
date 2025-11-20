@@ -157,6 +157,8 @@ class Renderer:
         pygame.display.update()
 
 """ ## In order of urgency ##
+Test aniamtion insertion.
+
 Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
 
@@ -213,11 +215,11 @@ class PlayerRenderer():
             "right melee" : [pygame.time.Clock(), 0],
         }
 
-    def load_anim(self, anim:str, single_run:bool):
+    def load_anim(self, anim:str, single_run:bool, insert_index=0):
         anim_data = PlayerRenderer.animation_data[anim]
         for limb_name in anim_data:
             if limb_name in self.player.inventory and self.player.inventory[limb_name]:
-                self.anims[limb_name] = [[anim, 0, single_run]] + self.anims[limb_name]
+                self.anims[limb_name].insert(insert_index, [anim, 0, single_run])
                 self.timing[limb_name][1] = 0
 
     def unload_anim(self, anim:str):

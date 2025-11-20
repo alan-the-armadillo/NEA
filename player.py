@@ -6,7 +6,7 @@ from item import Limb, Weapon
 
 class Player(Entity):
     def __init__(self, pos):
-        super().__init__(pos, [50,50])
+        super().__init__(pos, [100,50])
         self.interactor = PlayerInteractor(pos, [200,200])
         self.renderer = None
 
@@ -48,7 +48,7 @@ class Player(Entity):
             self.renderer.unload_anim("walk")
         #If started moving:
         elif initial_motion == [0,0] and (final_motion[0] != 0 or final_motion[1] != 0):
-            self.renderer.load_anim("walk", False)
+            self.renderer.load_anim("walk", False, insert_index=-1)
 
     def move(self):
         """Moves player collider"""
