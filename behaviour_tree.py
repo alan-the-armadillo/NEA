@@ -20,7 +20,7 @@ GAME = None #Will be set by the main file to the main game object
 
 class Behaviours:
     def no_damage(entity):
-        print("no damage")
+        """print("no damage")"""
         return True
 
     def wait(entity, time):
@@ -28,13 +28,13 @@ class Behaviours:
         if time == "use object time":
             entity.AI.pause = entity.data["wait_time"]
         entity.AI.pause = time
-        print(f"wait {time}")
+        """print(f"wait {time}")"""
         return True
 
     def distance_to_player_gt(entity, smaller_dist):
         pos1, pos2 = entity.collider.rect.center, GAME.player.collider.rect.center
         distance = Hitbox.get_distance(pos1, pos2)
-        print(distance)
+        """print(distance)"""
         return distance > smaller_dist
 
     def move_from_player(entity, time, speed_mult):
@@ -46,11 +46,11 @@ class Behaviours:
         entity.behaviour = moving_behaviour
         #Update entity behaviour tree pause time
         entity.AI.pause = time
-        print(f"move from player {time}")
+        """print(f"move from player {time}")"""
         return []
 
     def attack(entity, attack_id):
-        print(f"attack {attack_id}")
+        """print(f"attack {attack_id}")"""
         return True
 
     def wander(entity, time, speed_mult):
@@ -64,7 +64,7 @@ class Behaviours:
         entity.behaviour = moving_behaviour
         #Update entity behaviour tree pause time
         entity.AI.pause = time
-        print(f"wander {time}")
+        """print(f"wander {time}")"""
         return True
 
     translator = {
@@ -122,7 +122,7 @@ class BehaviourTree:
         self.index = self.initial_index.copy()
         self.last_node = [None, None]
         self.pause = 0
-        print(self.tree, self.initial_index, "\n")
+        """print(self.tree, self.initial_index, "\n")"""
 
     def resolve_SEQ(self, node, relative_index):
         """Resolves child node.
@@ -233,7 +233,7 @@ class BehaviourTree:
         """
         Arguments:
             relative_index (list): list of indexes of children that lead from this node to the leaf node."""
-        print(node[0], end="--|")
+        """print(node[0], end="--|")"""
         node_type = node[0]
         return BehaviourTree.node_resolvers[node_type](self, node, relative_index)
 

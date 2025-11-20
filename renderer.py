@@ -24,17 +24,17 @@ class Renderer:
             raise ValueError (f"Display size command '{window_size}' not recognised.")
         else:
             self.display = pygame.display.set_mode(window_size)
-        size = self.display.get_size()
+        size = [1600,900]#self.display.get_size()
         self.world = pygame.Surface(size)
         self.world_fg = pygame.Surface(size)
         #Transparent layer to make it an overlay
         #The final version of the HUD will use images, so transparent layers should not be an issue
-        self.map = pygame.Surface([size[1]/3, size[1]/3])
-        self.overlay = pygame.Surface(size, pygame.SRCALPHA)
-        self.center = pygame.Vector2(size[0]/2, size[1]/2)
+        self.map = pygame.Surface([self.display.get_height()/3, self.display.get_height()/3])
+        self.overlay = pygame.Surface(self.display.get_size(), pygame.SRCALPHA)
+        self.center = pygame.Vector2(self.display.get_rect().center)
 
         self.player = player
-        self.player_renderer = PlayerRenderer(player, "walk")
+        PlayerRenderer(player, "idle")
 
         self.screenshot_life = 0
         self.screenshot_clock = pygame.time.Clock()
@@ -56,6 +56,10 @@ class Renderer:
         room_size_mult = 0.75
         door_width = 0.2
         room_size = cell_size*room_size_mult
+        mini_room_rect = pygame.Rect(0, 0, room_size, room_size)
+        adjacencies = [[1,0], [0,-1], [-1,0], [0,1]]
+        dotted_drawn = []
+        dotted_color = [150, 150, 150]
         #Loop through rooms and draw those that have been visited
         for i in range(map.size):
             for j in range(map.size):
@@ -66,7 +70,7 @@ class Renderer:
                         color = [150, 150, 150]
 
                     #Draw room
-                    mini_room_rect = pygame.Rect((i+(1-room_size_mult)/2)*cell_size, (j+(1-room_size_mult)/2)*cell_size, room_size, room_size)
+                    mini_room_rect.topleft= [(i+(1-room_size_mult)/2)*cell_size, (j+(1-room_size_mult)/2)*cell_size]
                     pygame.draw.rect(self.map, color, mini_room_rect)
                     #Make door dimensions and locations on the minimap
                     door_dimensions = [
@@ -85,9 +89,24 @@ class Renderer:
                     for n, door in enumerate(map.rooms[i][j].doors):
                         if door:
                             pygame.draw.rect(self.map, color, pygame.Rect(door_locations[n], door_dimensions[n]))
+                            neighbor_index = [i+adjacencies[n][0],j+adjacencies[n][1]]
+                            if not map.rooms[neighbor_index[0]][neighbor_index[1]] and neighbor_index not in dotted_drawn:
+                                dotted_drawn.append(neighbor_index)
+                                mini_room_rect.topleft= [(neighbor_index[0]+(1-room_size_mult)/2)*cell_size, (neighbor_index[1]+(1-room_size_mult)/2)*cell_size]
+                                line_length = mini_room_rect.width/12
+                                for d in range(0, 12, 4):
+                                    start_x = mini_room_rect.left+d*line_length
+                                    pygame.draw.line(self.map, dotted_color, [start_x, mini_room_rect.top], [start_x+line_length, mini_room_rect.top], 2)
+                                    start_x = mini_room_rect.right-d*line_length
+                                    pygame.draw.line(self.map, dotted_color, [start_x, mini_room_rect.bottom], [start_x-line_length, mini_room_rect.bottom], 2)
+                                    start_y = mini_room_rect.top+d*line_length
+                                    pygame.draw.line(self.map, dotted_color, [mini_room_rect.right, start_y], [mini_room_rect.right, start_y+line_length], 2)
+                                    start_y = mini_room_rect.bottom-d*line_length
+                                    pygame.draw.line(self.map, dotted_color, [mini_room_rect.left, start_y], [mini_room_rect.left, start_y-line_length], 2)
+                                
 
     def debug_render_room(self, colliders, interactors, map, current_pos):
-        self.world.fill([40,40,40])
+        self.world.fill(0)
         [pygame.draw.rect(self.world, [200,200,200], c.rect) for c in colliders]
         for n,i in enumerate(interactors):
             if i != None:
@@ -124,12 +143,12 @@ class Renderer:
             pygame.draw.rect(self.world_fg, [255,255,255], pygame.Rect([rect.left-5, rect.top-5], [rect.width+10, rect.height+10]), 5)
         self.display.blit(self.world_fg, self.center - player_collider.rect.center)
         #Draw player interactor
-        pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
+        #pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
         #Draw player collider
-        pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
+        #pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
         
-        self.player_renderer.next_frame()
-        self.player_renderer.render_frame(self.display, self.center)
+        self.player.renderer.next_frame()
+        self.player.renderer.render_frame(self.display, self.center)
         
         #Draw the map, fps and screenshot acknowledgement
         self.debug_render_overlay(fps)
@@ -171,6 +190,7 @@ class PlayerRenderer():
         offset_data = json.load(file)
     def __init__(self, player:Player, anim):
         self.player = player
+        self.player.renderer = self
         # [anim_name, frame_number, single_run]
         self.anims = {
             "head" : [[anim,0,False]],
@@ -205,9 +225,19 @@ class PlayerRenderer():
             "right melee" : [pygame.time.Clock(), 0],
         }
 
-    ##########PROBLEM: THIS WILL ONLY WORK CACHING IF YOU REPLACE SELF.PLAYER.INTERACTOR.RECT.CENTER
-    #THIS IS BECAUSE THE PLAYER WILL MOVE BUT THE POSITION WILL NOT
-    #YOU NEED TO STORE RELATIVE POSITION EVEN THEN, AND THEN ADD THE PLAYER POSITION AS YOU GET TO THE FRAME
+    def load_anim(self, anim:str, single_run:bool):
+        anim_data = PlayerRenderer.animation_data[anim]
+        for limb_name in anim_data:
+            if limb_name in self.player.inventory and self.player.inventory[limb_name]:
+                self.anims[limb_name] = [[anim, 0, single_run]] + self.anims[limb_name]
+                self.timing[limb_name][1] = 0
+
+    def unload_anim(self, anim:str):
+        anim_data = PlayerRenderer.animation_data[anim]
+        for limb_name in anim_data:
+            self.anims[limb_name] = list(filter(lambda l: l[0] != anim, self.anims[limb_name]))
+            self.timing[limb_name][1] = 0
+
     def load_frame(self, limb_name, anim):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
@@ -249,6 +279,7 @@ class PlayerRenderer():
                         self.anims[limb_name][0][1] = 0
 
     def render_frame(self, surface, player_pos):
+        offset = [0,-30*PlayerRenderer.SCALE+self.player.collider.rect.height]
         render_data = []
         for limb_name, limb_data in list(self.anims.items()):
             #Loads cached sprite frame if existing
@@ -275,4 +306,4 @@ class PlayerRenderer():
             render_data.append([rotated_img, true_pos, seq])
         render_data = sorted(render_data, key=lambda o:o[2])
         for limb in render_data:
-            surface.blit(limb[0], limb[1])
+            surface.blit(limb[0], [limb[1][0]+offset[0], limb[1][1]+offset[1]])

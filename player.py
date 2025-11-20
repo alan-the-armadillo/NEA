@@ -1,4 +1,3 @@
-import pygame
 from typing import overload
 
 from hitbox import *
@@ -9,6 +8,7 @@ class Player(Entity):
     def __init__(self, pos):
         super().__init__(pos)
         self.interactor = PlayerInteractor(pos, [200,200])
+        self.renderer = None
 
         self.HP = 100
         self.ATK = 5
@@ -29,6 +29,26 @@ class Player(Entity):
         super().update_position(new_pos)
         self.interactor.rect.center = new_pos
         self.interactor.get_closest_interactor()
+    
+    def update_motion_vector(self, new_vector):
+        initial_motion = self.get_sub_motion_vector()
+        super().update_motion_vector(new_vector)
+        final_motion = self.get_sub_motion_vector()
+        self.check_anim_updates(initial_motion, final_motion)
+    
+    def add_to_motion_vector(self, adding_vector):
+        initial_motion = self.get_sub_motion_vector()
+        super().add_to_motion_vector(adding_vector)
+        final_motion = self.get_sub_motion_vector()
+        self.check_anim_updates(initial_motion, final_motion)
+    
+    def check_anim_updates(self, initial_motion, final_motion):
+        #If stopped moving:
+        if (initial_motion[0] != 0 or initial_motion[1] != 0) and final_motion == [0,0]:
+            self.renderer.unload_anim("walk")
+        #If started moving:
+        elif initial_motion == [0,0] and (final_motion[0] != 0 or final_motion[1] != 0):
+            self.renderer.load_anim("walk", False)
 
     def move(self):
         """Moves player collider"""

@@ -53,3 +53,6 @@ class Entity:
         if self.__unscaled_motion_vector != [0,0]:
             self.__sub_motion_vector.scale_to_length(Entity.sub_motion)
         self.update_direction()
+    
+    def get_sub_motion_vector(self):
+        return self.__sub_motion_vector

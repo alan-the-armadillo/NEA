@@ -23,8 +23,9 @@
                 ["ACT", ["move from player", 1, 1]]
             ]],
             ["SEQ", [
-                ["ACT", ["wait", 6]],
-                ["ACT", ["wander", 7, 0.3]]
+                ["ACT", ["wait", 1]],
+                ["ACT", ["wander", 7, 0.3]],
+                ["ACT", ["wait", 5]]
             ]]
         ]
     ],
