@@ -162,9 +162,6 @@ If either was changed, the screen would render bits weird (either unnecessary sp
 
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
 
-Need to implement catch-up fixes. By this, I mean that, currently, limbs return to where the animation left off if the animation has just been loaded to a limb
-after being completely unloaded due to no limb using the animation. This may be a problem.
-
 Currently have implemented feet-level hitbox, but this note is worth keeping:
 Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox.
 OR! put the collision hitbox at the player's feet/blit the player such that the feet are at the bottom. This will either require a total
@@ -220,8 +217,19 @@ class PlayerRenderer():
     def unload_anim(self, anim:str):
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.pop(anim)
+        #Test which animations are loaded (playing) currently
+        loaded = []
+        for other_anim in self.anims:
+            loaded.append(any([self.limbs[l][0] == other_anim for l in self.limbs]))
+        #Stop playing current aniamtion
         for limb_name in anim_data:
             self.limbs[limb_name].remove(anim)
+        #Test which animations will now be loaded (playing)
+        for i, other_anim in enumerate(self.anims):
+            #If an animation has been loaded due to an animation being unloaded, reset it
+            if any([self.limbs[l][0] == other_anim for l in self.limbs]) and not loaded[i]:
+                self.anims[other_anim][1].tick()
+                self.anims[other_anim][0] = 0
 
     def load_frame(self, limb_name, anim):
         """Loads in object for a frame.
