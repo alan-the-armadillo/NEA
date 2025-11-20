@@ -159,9 +159,6 @@ class Renderer:
 """ ## In order of urgency ##
 Also need to check the current code handles single runs.
 
-There seems to be an issue with creating frames, such that, during testing, frames were being created (significantly less than those being loaded in)
-when really no frames should have been created since it was loading a repeated animation.
-
 Need to implement variable usage into renderer size. At the moment, it is hard set to [1600,900] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
 
@@ -281,7 +278,6 @@ class PlayerRenderer():
             #Otherwise, creates the sprite frame, then caches it
             else:
                 frame_data = self.load_frame(limb_name, limb_data[0])
-                ############# ISSUE MAY ARISE IF PLAYER POS IS CENTRE OF TORSO RATHER THAN TOPLEFT
                 #Rotated image
                 rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
                 seq = frame_data[2]
