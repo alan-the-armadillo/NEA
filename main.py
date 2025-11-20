@@ -33,7 +33,7 @@ class Game:
     def solve_interaction(self, player:Player, interactor:Interactor):
         if type(interactor) == DoorInteractor:
             #Change room
-            self.current_pos, curr_room, new_door = self.map.move_room(self.current_pos, interactor, 100,100)
+            self.current_pos, curr_room, new_door = self.map.move_room(self.current_pos, interactor, 150,150)
             g.renderer.debug_render_room(curr_room.wall_colliders, curr_room.door_interactors, self.map, self.current_pos)
             #Snap player to door
             door_rect = new_door.rect
@@ -50,7 +50,7 @@ class Game:
                     player.update_position([x, door_rect.bottom-player.collider.hdim[1]])
             
     def test_run(self) -> Room:
-        r = self.map.load_room(self.current_pos, 100, 100)
+        r = self.map.load_room(self.current_pos, 150, 150)
         self.renderer.debug_render_room(r.wall_colliders, r.door_interactors, self.map, self.current_pos)
         return r
 

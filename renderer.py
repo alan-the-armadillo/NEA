@@ -24,7 +24,7 @@ class Renderer:
             raise ValueError (f"Display size command '{window_size}' not recognised.")
         else:
             self.display = pygame.display.set_mode(window_size)
-        size = [1600,900]#self.display.get_size()
+        size = [3200,1800]#self.display.get_size()
         self.world = pygame.Surface(size)
         self.world_fg = pygame.Surface(size)
         #Transparent layer to make it an overlay
@@ -93,8 +93,8 @@ class Renderer:
                             if not map.rooms[neighbor_index[0]][neighbor_index[1]] and neighbor_index not in dotted_drawn:
                                 dotted_drawn.append(neighbor_index)
                                 mini_room_rect.topleft= [(neighbor_index[0]+(1-room_size_mult)/2)*cell_size, (neighbor_index[1]+(1-room_size_mult)/2)*cell_size]
-                                line_length = mini_room_rect.width/12
-                                for d in range(0, 12, 4):
+                                line_length = mini_room_rect.width/8
+                                for d in range(0, 8, 3):
                                     start_x = mini_room_rect.left+d*line_length
                                     pygame.draw.line(self.map, dotted_color, [start_x, mini_room_rect.top], [start_x+line_length, mini_room_rect.top], 2)
                                     start_x = mini_room_rect.right-d*line_length

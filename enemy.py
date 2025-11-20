@@ -23,9 +23,9 @@ class Enemy(Entity):
 
     def __init__(self, ID, pos):
         Enemy.all.append(self)
-        super().__init__(pos)
-        self.ID = ID
         self.data = Enemy.data[ID]
+        super().__init__(pos, self.data["size"])
+        self.ID = ID
         self.parse_data()
         self.behaviour = None
         self.generate_update_time()

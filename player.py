@@ -6,7 +6,7 @@ from item import Limb, Weapon
 
 class Player(Entity):
     def __init__(self, pos):
-        super().__init__(pos)
+        super().__init__(pos, [50,50])
         self.interactor = PlayerInteractor(pos, [200,200])
         self.renderer = None
 

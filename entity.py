@@ -2,8 +2,8 @@ from hitbox import *
 
 class Entity:
     sub_motion = 3
-    def __init__(self, pos):
-        self.collider = EntityCollider(pos, [50,50])
+    def __init__(self, pos, collider_size):
+        self.collider = EntityCollider(pos, collider_size)
 
         self.direction = True
 
