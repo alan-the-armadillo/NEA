@@ -24,7 +24,7 @@ class Renderer:
             raise ValueError (f"Display size command '{window_size}' not recognised.")
         else:
             self.display = pygame.display.set_mode(window_size)
-        size = [3200,1800]#self.display.get_size()
+        size = [2400, 1350]#self.display.get_size()
         self.world = pygame.Surface(size)
         self.world_fg = pygame.Surface(size)
         #Transparent layer to make it an overlay
@@ -157,9 +157,7 @@ class Renderer:
         pygame.display.update()
 
 """ ## In order of urgency ##
-Also need to check the current code handles single runs.
-
-Need to implement variable usage into renderer size. At the moment, it is hard set to [1600,900] due to the room dimensions and collider size.
+Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
 
 AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
