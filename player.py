@@ -10,6 +10,7 @@ class Player(Entity):
         self.interactor = PlayerInteractor(pos, [200,200])
         self.renderer = None
 
+        self.max_HP = 100
         self.HP = 100
         self.ATK = 5
         self.SPD = 5

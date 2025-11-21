@@ -121,6 +121,10 @@ class Renderer:
         w = self.overlay.get_width()
         self.overlay.blit(self.map, [w-self.map.get_width(),0])
 
+        x_end = 300*round(self.player.HP/self.player.max_HP)
+        pygame.draw.rect(self.overlay, [255,0,0], pygame.Rect([0,0], [x_end,50]))
+        pygame.draw.rect(self.overlay, [255,255,255], pygame.Rect([0,0], [x_end,50]), 5)
+
         if self.screenshot_life > 0:
             self.overlay.blit(font.render("Screenshot taken", True, [255,255,255]), [0 , self.overlay.get_height()-font.get_height()])
             self.screenshot_life -= self.screenshot_clock.get_time()/1000
@@ -296,6 +300,18 @@ class PlayerRenderer():
             if self.player.direction:
                 true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
             else:
+                #Attempt to do animation flipping (which does not work)
+                #May need to make second animations for some animations, and set a rule
+                #for animations so this program knows which animation is the mirror image.
+                #e.g. To get left hand attack left, you need right hand attack right, switch around the 
+                #left and right limb data, then mirror the entire animation.
+                #Moving the limbs around should involve taking their relative offset from their base positon
+                #and applying this to the base position of their counterpart. e.g. left hand should add its relative data to
+                #the base pos of the right hand.
+                """x1_rel = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"][0]
+                x1_pos = x1_rel[0] + player_pos[0]
+                x2_pos = rel_pos[0]+player_pos[0]
+                true_pos = [2*x1_pos-x2_pos, rel_pos[1]+player_pos[1]]"""
                 true_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
                 rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
             render_data.append([rotated_img, true_pos, seq])
