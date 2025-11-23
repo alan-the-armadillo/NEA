@@ -300,7 +300,7 @@ class PlayerRenderer():
             if self.player.direction:
                 true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
             else:
-                #Attempt to do animation flipping (which does not work)
+                #Attempt to do animation flipping (which does not work rn)
                 #May need to make second animations for some animations, and set a rule
                 #for animations so this program knows which animation is the mirror image.
                 #e.g. To get left hand attack left, you need right hand attack right, switch around the 
