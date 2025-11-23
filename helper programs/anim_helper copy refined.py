@@ -301,7 +301,7 @@ objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
 
 
 frames:list[Frame] = []
-current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), objects, False)
+current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), [copy(o) for o in objects], False)
 overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 onion_layer = pygame.Surface(display.get_size(), pygame.SRCALPHA)
@@ -464,11 +464,26 @@ def load_anim():
             while not affirmed:
                 affirmation = input(f"Are you sure you want to load '{anim_name}'? [y,n] If your current animation is unsaved, it will be erased.  ")
                 if affirmation == "y":
+                    fill_in_affirm = False
+                    while not fill_in_affirm:
+                        fill_in = input(f"Would you like to keep limbs not present in the animation? [y,n]")
+                        if fill_in not in ["y","n"]:
+                            print("Input was neither a 'y' or 'n'.")
+                        else:
+                            fill_in_affirm = True
                     make_display()
                     affirmed = True
-                    frames = []
                     anim_data = data[anim_name]
+                    if fill_in == "y":
+                        try:
+                            unloaded_objects = [obj for obj in frames[-1].objects if obj.name not in list(anim_data.keys())]
+                        except:
+                            unloaded_objects = [obj for obj in Frame.copy(current_frame).objects if obj.name not in list(anim_data.keys())]
                     frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(anim_data, i)) for i in range(len(list(anim_data.values())[0]))][::-1]
+                    if fill_in == "y":
+                        for frame in frames:
+                            #NEED TO CONSIDER SEQUENCE NUMBERS HERE ##########################################<-------------------------------------------------------------------------------------
+                            frame.objects = frame.objects + unloaded_objects
                     current_frame = frames[0]
                     frames = frames[1:]
                     current_frame.render()
@@ -624,6 +639,51 @@ def save():
 def get_possible_sprites():
     return list(filter(lambda x: x.highlighted, current_frame.objects))
 
+def flip_animation_data():
+    #Ask user for modules to flip
+    removed = []
+    valid_flip_sprites = list(set([o[5:] for o in sprites if "left" == o[:4]] + [o[6:] for o in sprites if "right" == o[:5]]))
+    for obj in valid_flip_sprites:
+        valid = False
+        while not valid:
+            keep = input(f"Do you want to flip {obj} [y,n]?  ").lower()
+            if keep == "y":
+                valid = True
+            elif keep == "n":
+                removed.append(obj)
+                valid = True
+            else:
+                print("Input must be 'y' or 'n'.")
+
+    base_frame = frames[-1]
+    for frame in [current_frame]+frames:
+        copies = []
+        for limb in frame.objects:
+            if "left" in limb.name:
+                if limb.name in ["left "+o for o in removed]:
+                    copies.append(limb)
+                    continue
+                counterpart_name = limb.name.replace("left", "right")
+            elif "right" in limb.name:
+                if limb.name in ["right "+o for o in removed]:
+                    copies.append(limb)
+                    continue
+                counterpart_name = limb.name.replace("right", "left")
+            else:
+                copies.append(limb)
+                continue
+            counterpart_pos = [o for o in frame.objects if o.name == counterpart_name][0].pos
+            counterpart_base = [o for o in base_frame.objects if o.name == counterpart_name][0].pos
+            limb_base = [o for o in base_frame.objects if o.name == limb.name][0].pos
+            new_pos = [counterpart_pos[0]-counterpart_base[0]+limb_base[0], counterpart_pos[1]-counterpart_base[1]+limb_base[1]]
+            limb_copy = copy(limb)
+            limb_copy.pos = new_pos
+            limb_copy.rot = [o for o in frame.objects if o.name == counterpart_name][0].rot
+            copies.append(limb_copy)
+        frame.objects = copies
+        frame.render()    
+    onion_skin(onion_layer)
+
 clock = pygame.time.Clock()
 running = True
 saving = False
@@ -702,7 +762,7 @@ while running:
                 current_frame = frames[editing_frame_index]
                 onion_skin(onion_layer)
             #Show first frame as a translucent overlay
-            elif event.key == pygame.K_f and not anim_playing:
+            elif event.key == pygame.K_f and not anim_playing and not keys[pygame.K_LCTRL]:
                 show_first_frame = not show_first_frame
                 onion_skin(onion_layer)
             #Change layer order
@@ -737,6 +797,10 @@ while running:
                     child.rot = child.get_full_rot()
                     child.parent = None
                 child = None
+            elif event.key == pygame.K_f and keys[pygame.K_LCTRL]:
+                pygame.display.quit()
+                flip_animation_data()
+                make_display()
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             possible_sprites = get_possible_sprites()
@@ -832,10 +896,13 @@ while running:
             if dist_to_mouse < shortest_distance or closest == None:
                 shortest_distance = dist_to_mouse
                 closest = sprite
-        img, pos = closest.get_full_rot_data()
-        if img.get_rect(topleft=pos).collidepoint(mouse_pos):
-            closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
-            closest.highlighted = True
+        try:
+            img, pos = closest.get_full_rot_data()
+            if img.get_rect(topleft=pos).collidepoint(mouse_pos):
+                closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
+                closest.highlighted = True
+        except:
+            pass
         
         #Overlay
         if render_text:

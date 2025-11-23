@@ -260,6 +260,7 @@ class PlayerRenderer():
         Checks to see if limb animations should be progressed and, if so, progresses them.
         """
         #Loop through animations:
+        unloads = []
         for animation in self.anims:
             #If showing this animation:
             if any([animation==self.limbs[l][0] for l in self.limbs]):
@@ -272,9 +273,10 @@ class PlayerRenderer():
                     #If the animation has now ended
                     if len(PlayerRenderer.animation_data[animation][list(PlayerRenderer.animation_data[animation].keys())[0]]) == self.anims[animation][0]:
                         if self.anims[animation][3]: #Not looping
-                            self.unload_anim(animation)
+                            unloads.append(animation)
                         else: #Looping
                             self.anims[animation][0] = 0
+        [self.unload_anim(animation) for animation in unloads]
 
     def render_frame(self, surface, player_pos):
         offset = [0,-30*PlayerRenderer.SCALE+self.player.collider.rect.height]
