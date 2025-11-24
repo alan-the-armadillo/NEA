@@ -235,18 +235,25 @@ class PlayerRenderer():
                 self.anims[other_anim][1].tick()
                 self.anims[other_anim][0] = 0
 
-    def load_frame(self, limb_name, anim):
+    def load_frame(self, limb_name, anim, frame_num_override = -1, limb_img_override = -1):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
         #Get frame data
-        frame_data = PlayerRenderer.animation_data[anim][limb_name][self.anims[anim][0]]
+        if frame_num_override != -1:
+            frame_data = PlayerRenderer.animation_data[anim][limb_name][frame_num_override]
+        else:
+            frame_data = PlayerRenderer.animation_data[anim][limb_name][self.anims[anim][0]]
         #Retrieve data
         relative_pos, rot, seq, vec_rot = frame_data["pos"], frame_data["rot"], frame_data["seq"], frame_data["offset vector rot"]
         #Format and calculate useful data
         real_pos = relative_pos[0]*self.SCALE, relative_pos[1]*self.SCALE
         #Img
-        img = pygame.transform.scale_by(self.player.inventory[limb_name].img, PlayerRenderer.SCALE)
-        img_name = self.player.inventory[limb_name].data["img"]
+        if limb_img_override != -1:
+            img = pygame.transform.scale_by(self.player.inventory[limb_img_override].img, PlayerRenderer.SCALE)
+            img_name = self.player.inventory[limb_img_override].data["img"]
+        else:
+            img = pygame.transform.scale_by(self.player.inventory[limb_name].img, PlayerRenderer.SCALE)
+            img_name = self.player.inventory[limb_name].data["img"]
         if img_name in PlayerRenderer.offset_data:
             relative_center = (pygame.Vector2(PlayerRenderer.offset_data[img_name])*self.SCALE).rotate(vec_rot)
         else:
@@ -285,7 +292,7 @@ class PlayerRenderer():
         for limb in self.limbs:
             animation = self.limbs[limb][0]
             #Loads if cached
-            if animation + f"FRAME{self.anims[animation][0]}" in self.cache[limb]:
+            if animation + f"FRAME{self.anims[animation][0]}" in self.cache[limb] and 0==1:
                 rel_pos, rotated_img, seq = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"]
             #Otherwise, creates frame
             else:
@@ -314,8 +321,30 @@ class PlayerRenderer():
                 x1_pos = x1_rel[0] + player_pos[0]
                 x2_pos = rel_pos[0]+player_pos[0]
                 true_pos = [2*x1_pos-x2_pos, rel_pos[1]+player_pos[1]]"""
+                if "left" in animation:
+                    new_animation = animation.replace("left", "right")
+                elif "right" in animation:
+                    new_animation = animation.replace("right", "left")
+                else:
+                    new_animation = animation
+                if "left" in limb:
+                    new_limb = limb.replace("left", "right")
+                elif "right" in limb:
+                    new_limb = limb.replace("right", "left")
+                else:
+                    new_limb = limb
+                frame_data = self.load_frame(new_limb, new_animation, frame_num_override=self.anims[animation][0], limb_img_override=limb)
+                #Rotated image
+                rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
+                seq = frame_data[2]
+                #Cache [pos, img] for the specific frame
+                rect = frame_data[3].get_rect(topleft = frame_data[0])
+                #Use this pos to keep rotation central
+                rel_pos = rotated_img.get_rect(center=rect.center).topleft
+                self.cache[limb].update({animation + f"FRAME{self.anims[animation][0]}":[rel_pos, rotated_img, seq]})
                 true_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
                 rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
+
             render_data.append([rotated_img, true_pos, seq])
         render_data = sorted(render_data, key=lambda o:o[2])
         for limb in render_data:
