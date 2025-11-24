@@ -211,6 +211,22 @@ class PlayerRenderer():
             anim : [0, pygame.time.Clock(), 0, False],
         }
 
+    def __get_direction_anim_name(self, anim:str):
+        if not self.player.direction:
+            if "left" in anim:
+                return anim.replace("left", "right")
+            elif "right" in anim:
+                return anim.replace("right", "left")
+        return anim
+    
+    def __get_direction_limb_name(self, limb:str):
+        if not self.player.direction:
+            if "left" in limb:
+                return limb.replace("left", "right")
+            elif "right" in limb:
+                return limb.replace("right", "left")
+        return limb
+
     def load_anim(self, anim:str, single_run:bool, insert_index=0):
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
@@ -235,32 +251,38 @@ class PlayerRenderer():
                 self.anims[other_anim][1].tick()
                 self.anims[other_anim][0] = 0
 
-    def load_frame(self, limb_name, anim, frame_num_override = -1, limb_img_override = -1):
+    def load_frame(self, limb_name, anim, player_pos):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
+        new_anim = self.__get_direction_anim_name(anim)
+        new_limb = self.__get_direction_limb_name(limb_name)
         #Get frame data
-        if frame_num_override != -1:
-            frame_data = PlayerRenderer.animation_data[anim][limb_name][frame_num_override]
-        else:
-            frame_data = PlayerRenderer.animation_data[anim][limb_name][self.anims[anim][0]]
+        frame_data = PlayerRenderer.animation_data[new_anim][new_limb][self.anims[anim][0]]
         #Retrieve data
         relative_pos, rot, seq, vec_rot = frame_data["pos"], frame_data["rot"], frame_data["seq"], frame_data["offset vector rot"]
         #Format and calculate useful data
         real_pos = relative_pos[0]*self.SCALE, relative_pos[1]*self.SCALE
         #Img
-        if limb_img_override != -1:
-            img = pygame.transform.scale_by(self.player.inventory[limb_img_override].img, PlayerRenderer.SCALE)
-            img_name = self.player.inventory[limb_img_override].data["img"]
-        else:
-            img = pygame.transform.scale_by(self.player.inventory[limb_name].img, PlayerRenderer.SCALE)
-            img_name = self.player.inventory[limb_name].data["img"]
+        img = pygame.transform.scale_by(self.player.inventory[limb_name].img, PlayerRenderer.SCALE)
+        img_name = self.player.inventory[limb_name].data["img"]
         if img_name in PlayerRenderer.offset_data:
             relative_center = (pygame.Vector2(PlayerRenderer.offset_data[img_name])*self.SCALE).rotate(vec_rot)
         else:
             relative_center = pygame.Vector2(img.get_rect().center).rotate(vec_rot)
-        #Relative positino
+        #Relative position
         true_pos = -relative_center + real_pos
-        return [true_pos, rot, seq, img]
+        
+        rotated_img = pygame.transform.rotate(img, rot)
+        rect = img.get_rect(topleft = true_pos)
+        rel_pos = rotated_img.get_rect(center=rect.center).topleft
+        self.cache[limb_name].update({anim + f"FRAME{self.anims[anim][0]}":[rel_pos, rotated_img, seq]})
+        if self.player.direction:
+            final_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
+        else:
+            rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
+            final_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
+
+        return [final_pos, rotated_img, seq]
     
     def next_frame(self):
         """DOES NOT YET ALLOW FOR SPRITES WITH THEIR OWN SPRITE SHEETS.
@@ -278,7 +300,9 @@ class PlayerRenderer():
                     self.anims[animation][2] = 0
                     self.anims[animation][0] += 1
                     #If the animation has now ended
-                    if len(PlayerRenderer.animation_data[animation][list(PlayerRenderer.animation_data[animation].keys())[0]]) == self.anims[animation][0]:
+
+                    new_anim = self.__get_direction_anim_name(animation)
+                    if len(PlayerRenderer.animation_data[new_anim][list(PlayerRenderer.animation_data[new_anim].keys())[0]]) == self.anims[animation][0]:
                         if self.anims[animation][3]: #Not looping
                             unloads.append(animation)
                         else: #Looping
@@ -292,58 +316,23 @@ class PlayerRenderer():
         for limb in self.limbs:
             animation = self.limbs[limb][0]
             #Loads if cached
+            """
+            CURRENTLY THIS SECTION DOES NOT WORK
+            The condition is set to return false so this if statement never runs.
+            The caching system must first be sorted out, then caching will work.
+            Problems may occur as is. Without it, it likely runs at a much slower 
+            frame rate since it needs to do so many calculations per frame, especially
+            if facing left.
+            """
             if animation + f"FRAME{self.anims[animation][0]}" in self.cache[limb] and 0==1:
                 rel_pos, rotated_img, seq = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"]
+                true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
             #Otherwise, creates frame
             else:
-                frame_data = self.load_frame(limb, animation)
-                #Rotated image
-                rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
-                seq = frame_data[2]
-                #Cache [pos, img] for the specific frame
-                rect = frame_data[3].get_rect(topleft = frame_data[0])
-                #Use this pos to keep rotation central
-                rel_pos = rotated_img.get_rect(center=rect.center).topleft
-                self.cache[limb].update({animation + f"FRAME{self.anims[animation][0]}":[rel_pos, rotated_img, seq]})
-
-            if self.player.direction:
-                true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
-            else:
-                #Attempt to do animation flipping (which does not work rn)
-                #May need to make second animations for some animations, and set a rule
-                #for animations so this program knows which animation is the mirror image.
-                #e.g. To get left hand attack left, you need right hand attack right, switch around the 
-                #left and right limb data, then mirror the entire animation.
-                #Moving the limbs around should involve taking their relative offset from their base positon
-                #and applying this to the base position of their counterpart. e.g. left hand should add its relative data to
-                #the base pos of the right hand.
-                """x1_rel = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"][0]
-                x1_pos = x1_rel[0] + player_pos[0]
-                x2_pos = rel_pos[0]+player_pos[0]
-                true_pos = [2*x1_pos-x2_pos, rel_pos[1]+player_pos[1]]"""
-                if "left" in animation:
-                    new_animation = animation.replace("left", "right")
-                elif "right" in animation:
-                    new_animation = animation.replace("right", "left")
+                if self.player.direction:
+                    true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
                 else:
-                    new_animation = animation
-                if "left" in limb:
-                    new_limb = limb.replace("left", "right")
-                elif "right" in limb:
-                    new_limb = limb.replace("right", "left")
-                else:
-                    new_limb = limb
-                frame_data = self.load_frame(new_limb, new_animation, frame_num_override=self.anims[animation][0], limb_img_override=limb)
-                #Rotated image
-                rotated_img = pygame.transform.rotate(frame_data[3], frame_data[1])
-                seq = frame_data[2]
-                #Cache [pos, img] for the specific frame
-                rect = frame_data[3].get_rect(topleft = frame_data[0])
-                #Use this pos to keep rotation central
-                rel_pos = rotated_img.get_rect(center=rect.center).topleft
-                self.cache[limb].update({animation + f"FRAME{self.anims[animation][0]}":[rel_pos, rotated_img, seq]})
-                true_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
-                rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
+                    true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
 
             render_data.append([rotated_img, true_pos, seq])
         render_data = sorted(render_data, key=lambda o:o[2])
