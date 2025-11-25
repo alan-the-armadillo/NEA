@@ -227,6 +227,9 @@ class PlayerRenderer():
                 return limb.replace("right", "left")
         return limb
 
+    def __get_cache_frame_name(self, anim):
+        return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
+
     def load_anim(self, anim:str, single_run:bool, insert_index=0):
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
@@ -275,12 +278,11 @@ class PlayerRenderer():
         rotated_img = pygame.transform.rotate(img, rot)
         rect = img.get_rect(topleft = true_pos)
         rel_pos = rotated_img.get_rect(center=rect.center).topleft
-        self.cache[limb_name].update({anim + f"FRAME{self.anims[anim][0]}":[rel_pos, rotated_img, seq]})
-        if self.player.direction:
-            final_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
-        else:
+        if not self.player.direction:
             rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
-            final_pos = [-rel_pos[0]+player_pos[0]-rotated_img.get_width(), rel_pos[1]+player_pos[1]]
+            rel_pos = [-rel_pos[0]-rotated_img.get_width(), rel_pos[1]]
+        self.cache[limb_name].update({self.__get_cache_frame_name(anim):[rel_pos, rotated_img, seq]})
+        final_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
 
         return [final_pos, rotated_img, seq]
     
@@ -316,16 +318,8 @@ class PlayerRenderer():
         for limb in self.limbs:
             animation = self.limbs[limb][0]
             #Loads if cached
-            """
-            CURRENTLY THIS SECTION DOES NOT WORK
-            The condition is set to return false so this if statement never runs.
-            The caching system must first be sorted out, then caching will work.
-            Problems may occur as is. Without it, it likely runs at a much slower 
-            frame rate since it needs to do so many calculations per frame, especially
-            if facing left.
-            """
-            if animation + f"FRAME{self.anims[animation][0]}" in self.cache[limb] and 0==1:
-                rel_pos, rotated_img, seq = self.cache[limb][animation + f"FRAME{self.anims[animation][0]}"]
+            if self.__get_cache_frame_name(animation) in self.cache[limb]:
+                rel_pos, rotated_img, seq = self.cache[limb][self.__get_cache_frame_name(animation)]
                 true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
             #Otherwise, creates frame
             else:
