@@ -246,7 +246,10 @@ class PlayerRenderer():
             loaded.append(any([self.limbs[l][0] == other_anim for l in self.limbs]))
         #Stop playing current aniamtion
         for limb_name in anim_data:
-            self.limbs[limb_name].remove(anim)
+            try:
+                self.limbs[limb_name].remove(anim)
+            except:
+                pass
         #Test which animations will now be loaded (playing)
         for i, other_anim in enumerate(self.anims):
             #If an animation has been loaded due to an animation being unloaded, reset it
@@ -316,19 +319,22 @@ class PlayerRenderer():
         render_data = []
 
         for limb in self.limbs:
-            animation = self.limbs[limb][0]
-            #Loads if cached
-            if self.__get_cache_frame_name(animation) in self.cache[limb]:
-                rel_pos, rotated_img, seq = self.cache[limb][self.__get_cache_frame_name(animation)]
-                true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
-            #Otherwise, creates frame
-            else:
-                if self.player.direction:
-                    true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
+            try:
+                animation = self.limbs[limb][0]
+                #Loads if cached
+                if self.__get_cache_frame_name(animation) in self.cache[limb]:
+                    rel_pos, rotated_img, seq = self.cache[limb][self.__get_cache_frame_name(animation)]
+                    true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
+                #Otherwise, creates frame
                 else:
-                    true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
+                    if self.player.direction:
+                        true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
+                    else:
+                        true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
 
-            render_data.append([rotated_img, true_pos, seq])
+                render_data.append([rotated_img, true_pos, seq])
+            except AttributeError:
+                pass
         render_data = sorted(render_data, key=lambda o:o[2])
         for limb in render_data:
             surface.blit(limb[0], [limb[1][0]+offset[0], limb[1][1]+offset[1]])

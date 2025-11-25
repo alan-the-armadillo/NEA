@@ -18,7 +18,7 @@ class Player(Entity):
         self.inventory = { ###########WORK ON INVENTORY AND ITEMS NEXT (stats will also be worked on in the process)
             "torso" : Limb("l0"),
             "head" : Limb("l1"),
-            "left hand" : Limb("l1"),
+            "left hand" : Limb("l2"),
             "right hand" : Limb("l2"),
             "left foot" : Limb("l3"),
             "right foot" : Limb("l3"),
