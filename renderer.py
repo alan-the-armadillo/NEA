@@ -161,10 +161,14 @@ class Renderer:
         pygame.display.update()
 
 """ ## In order of urgency ##
+Need to fix animation layer rendering. The problem seems to be that layers are in the wrong order if the limb has a different
+anim to the rest of the body. This could be fixed by taking the median limb as the center and inserting the other limbs of the animation around it,
+such that the median limb is at the same sequence as it was before the new animation was pushed to the stack, and the other limbs of the
+new animation move to be the same offset from the median limb as in the new animation. e.g. new animation with sequencing of lhand, torso, rhand.
+Torso is left at the sequence it is at, say 3, lhand moves to the layer below torso (2) and r hand moves to the layer above torso (4).
+
 Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
 If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
-
-AND may want to implement functionality to allow limbs to not be rendered if there is no limb in the relevant player inventory slot.
 
 Currently have implemented feet-level hitbox, but this note is worth keeping:
 Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox.
@@ -212,6 +216,9 @@ class PlayerRenderer():
         }
 
     def __get_direction_anim_name(self, anim:str):
+        """Switches left-right if facing left.
+        Returns the anim name fixed for current direction.
+        """
         if not self.player.direction:
             if "left" in anim:
                 return anim.replace("left", "right")
@@ -220,6 +227,9 @@ class PlayerRenderer():
         return anim
     
     def __get_direction_limb_name(self, limb:str):
+        """Switches left-right if facing left.
+        Returns the limb name fixed for current direction.
+        """
         if not self.player.direction:
             if "left" in limb:
                 return limb.replace("left", "right")
@@ -228,9 +238,14 @@ class PlayerRenderer():
         return limb
 
     def __get_cache_frame_name(self, anim):
+        """Returns the possible key to the anim frame data.
+        This should be used both to find values in the cache as well as making the key for new values in the cache.
+        """
         return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
 
     def load_anim(self, anim:str, single_run:bool, insert_index=0):
+        """Loads in an animation for all applicable limbs.
+        """
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
         for limb_name in anim_data:
@@ -238,6 +253,9 @@ class PlayerRenderer():
                 self.limbs[limb_name].insert(insert_index, anim)
 
     def unload_anim(self, anim:str):
+        """Unloads and animation for all applicable limbs.
+        If this results in an animation uncovering from not playing, then it will be reset to frame 0.
+        """
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.pop(anim)
         #Test which animations are loaded (playing) currently
@@ -260,6 +278,7 @@ class PlayerRenderer():
     def load_frame(self, limb_name, anim, player_pos):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
+        #Get relevant animation and limb (just anim and limb_name if right, otherwise gets counterpart)
         new_anim = self.__get_direction_anim_name(anim)
         new_limb = self.__get_direction_limb_name(limb_name)
         #Get frame data
@@ -277,14 +296,17 @@ class PlayerRenderer():
             relative_center = pygame.Vector2(img.get_rect().center).rotate(vec_rot)
         #Relative position
         true_pos = -relative_center + real_pos
-        
+        #Get rotated image and the fix the rel_pos to keep center consistent
         rotated_img = pygame.transform.rotate(img, rot)
         rect = img.get_rect(topleft = true_pos)
         rel_pos = rotated_img.get_rect(center=rect.center).topleft
+        #Flip animation if facing the other way
         if not self.player.direction:
             rotated_img = pygame.transform.flip(rotated_img, flip_x=True, flip_y=False)
             rel_pos = [-rel_pos[0]-rotated_img.get_width(), rel_pos[1]]
+        #Add animation to cache
         self.cache[limb_name].update({self.__get_cache_frame_name(anim):[rel_pos, rotated_img, seq]})
+        #Get actual player pos
         final_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
 
         return [final_pos, rotated_img, seq]
@@ -293,8 +315,8 @@ class PlayerRenderer():
         """DOES NOT YET ALLOW FOR SPRITES WITH THEIR OWN SPRITE SHEETS.
         Checks to see if limb animations should be progressed and, if so, progresses them.
         """
-        #Loop through animations:
         unloads = []
+        #Loop through animations:
         for animation in self.anims:
             #If showing this animation:
             if any([animation==self.limbs[l][0] for l in self.limbs]):
@@ -305,16 +327,19 @@ class PlayerRenderer():
                     self.anims[animation][2] = 0
                     self.anims[animation][0] += 1
                     #If the animation has now ended
-
                     new_anim = self.__get_direction_anim_name(animation)
                     if len(PlayerRenderer.animation_data[new_anim][list(PlayerRenderer.animation_data[new_anim].keys())[0]]) == self.anims[animation][0]:
                         if self.anims[animation][3]: #Not looping
                             unloads.append(animation)
                         else: #Looping
                             self.anims[animation][0] = 0
+        #Unload any animations flagged for unloading.
         [self.unload_anim(animation) for animation in unloads]
 
     def render_frame(self, surface, player_pos):
+        """Renders the current limb frames to the surface.
+        Will load in data from the cache where possible, otherwise will load in the frame.
+        """
         offset = [0,-30*PlayerRenderer.SCALE+self.player.collider.rect.height]
         render_data = []
 
@@ -335,6 +360,7 @@ class PlayerRenderer():
                 render_data.append([rotated_img, true_pos, seq])
             except AttributeError:
                 pass
+        #Render limbs in order of sequence number.
         render_data = sorted(render_data, key=lambda o:o[2])
         for limb in render_data:
             surface.blit(limb[0], [limb[1][0]+offset[0], limb[1][1]+offset[1]])

@@ -803,16 +803,24 @@ while running:
                 make_display()
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            possible_sprites = get_possible_sprites()
-            if possible_sprites != []:
-                drag_sprite = possible_sprites[0]
-                sx,sy = drag_sprite.pos
-                mx, my = mouse_pos
-                displacement = [sx-mx, sy-my]
+            if keys[pygame.K_LSHIFT]:
+                #Code to start hitbox
+                pass
+            else:
+                possible_sprites = get_possible_sprites()
+                if possible_sprites != []:
+                    drag_sprite = possible_sprites[0]
+                    sx,sy = drag_sprite.pos
+                    mx, my = mouse_pos
+                    displacement = [sx-mx, sy-my]
         #Stop dragging sprite
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            drag_sprite = None
-            last_mouse_pos = None
+            if keys[pygame.K_LSHIFT]:
+                #Code to finish a hitbox, should show size and provide data in printing.
+                pass
+            else:
+                drag_sprite = None
+                last_mouse_pos = None
         #Parental selecting
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
             #Select child
