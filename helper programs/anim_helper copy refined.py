@@ -699,17 +699,19 @@ def render_hitbox(surface, hitbox:Sprite):
     except:
         torso = list(filter(lambda o: o.name == "torso",current_frame.objects))[0]
     origin = get_obj_rotated_point(torso)
-    rel_tl = [tl[0]-origin[0], tl[1]-origin[1]]
+    rel_tl = [round((tl[0]-origin[0])/SCALE,2), round((tl[1]-origin[1])/SCALE,2)]
     x,y = rect.center
+    x,y = x-tl[0], y-tl[1]
     dim = rect.size
+    dim = [round(dim[0]/SCALE,2), round(dim[1]/SCALE,2)]
     tl_text = f"REL_TL: {rel_tl}"
     dim_text = f"DIM: {dim}"
     frame_text = f"START FRAME: {hitbox.frame_num+1}"
     end_frame_text = f"END FRAME: {max(hitbox.end_frame_num-1, -1)}"
-    hitbox.img.blit(hitbox_font.render(tl_text, True, "black"),[x-tl[0]-len(tl_text)*5, y-tl[1]-40])
-    hitbox.img.blit(hitbox_font.render(dim_text, True, "black"),[x-tl[0]-len(dim_text)*5, y-tl[1]-20])
-    hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-tl[0]-len(frame_text)*5, y-tl[1]+20])
-    hitbox.img.blit(hitbox_font.render(end_frame_text, True, "black"),[x-tl[0]-len(end_frame_text)*5, y-tl[1]+40])
+    hitbox.img.blit(hitbox_font.render(tl_text, True, "black"),[x-len(tl_text)*5, y-40])
+    hitbox.img.blit(hitbox_font.render(dim_text, True, "black"),[x-len(dim_text)*5, y-20])
+    hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-len(frame_text)*5, y+20])
+    hitbox.img.blit(hitbox_font.render(end_frame_text, True, "black"),[x-len(end_frame_text)*5, y+40])
     hitbox.draw(surface)
 
 clock = pygame.time.Clock()
