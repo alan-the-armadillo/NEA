@@ -303,7 +303,7 @@ objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
 frames:list[Frame] = []
 current_frame = Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), [copy(o) for o in objects], False)
 overlay = pygame.Surface(display.get_size(), pygame.SRCALPHA)
-mode_name = pygame.Surface(display.get_size(), pygame.SRCALPHA)
+mode_name = "animating"#pygame.Surface(display.get_size(), pygame.SRCALPHA)
 onion_layer = pygame.Surface(display.get_size(), pygame.SRCALPHA)
 show_first_frame = False
 #Movement
@@ -335,6 +335,9 @@ mode_colors = {
 }
 
 mode_color = mode_colors["animate"]
+
+hitbox_p1 = None
+hitboxes = []
 
 def create_frame():
     """Copies the current frame to the frame list.
@@ -637,7 +640,7 @@ def save():
     current_frame = save_current_frame
 
 def get_possible_sprites():
-    return list(filter(lambda x: x.highlighted, current_frame.objects))
+    return list(filter(lambda x: x.highlighted, current_frame.objects+hitboxes))
 
 def flip_animation_data():
     #Ask user for modules to flip
@@ -804,8 +807,7 @@ while running:
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if keys[pygame.K_LSHIFT]:
-                #Code to start hitbox
-                pass
+                hitbox_p1 = pygame.mouse.get_pos()
             else:
                 possible_sprites = get_possible_sprites()
                 if possible_sprites != []:
@@ -816,8 +818,19 @@ while running:
         #Stop dragging sprite
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if keys[pygame.K_LSHIFT]:
-                #Code to finish a hitbox, should show size and provide data in printing.
-                pass
+                hitbox_p2 = pygame.mouse.get_pos()
+                tl = [min(hitbox_p1[0], hitbox_p2[0]), min(hitbox_p1[1], hitbox_p2[1])]
+                br = [max(hitbox_p1[0], hitbox_p2[0]), max(hitbox_p1[1], hitbox_p2[1])]
+                w,h = br[0]-tl[0], br[1]-tl[1]
+                hitboxes.append(Sprite("hitbox", sprites["torso"][0], tl, 0))
+                hitboxes[-1].img = pygame.Surface((w,h), pygame.SRCALPHA)
+                hitboxes[-1].img.fill([255,255,255,100])
+                if not anim_playing and not editing:
+                    hitboxes[-1].frame_num = len(frames)-1
+                elif editing:
+                    hitboxes[-1].frame_num = len(frames)-1-editing_frame_index
+                hitboxes[-1].end_frame_num = -1
+                hitbox_p1 = None
             else:
                 drag_sprite = None
                 last_mouse_pos = None
@@ -827,7 +840,12 @@ while running:
             possible_sprites = get_possible_sprites()
             if possible_sprites != []:
                 sprite = possible_sprites[0]
-                if not child:
+                if sprite.name == "hitbox":
+                    if not anim_playing and not editing:
+                        sprite.end_frame_num = len(frames)
+                    elif editing:
+                        sprite.end_frame_num = len(frames)-editing_frame_index
+                elif not child:
                     child = sprite
                 else:
                     if sprite == child:
@@ -871,6 +889,9 @@ while running:
         display.fill(mode_color)
         current_frame = frames[frame_num]
         current_frame.draw(display)
+        for hitbox in hitboxes:
+            if not (hitbox.frame_num <= frame_num < hitbox.end_frame_num):
+                hitbox.draw(display)
         frame_num = (frame_num - 1) % len(frames)
 
     else:
@@ -898,7 +919,21 @@ while running:
         shortest_distance = 10000
         closest = None
         current_frame.draw(display)
-        for sprite in current_frame.objects:
+        #Draw hitboxes
+        for hitbox in hitboxes:
+            if not anim_playing and not editing:
+                if hitbox.frame_num <= len(frames)-1 and (hitbox.end_frame_num == -1 or len(frames) < hitbox.end_frame_num):
+                    hitbox.draw(display)
+            elif editing:
+                if hitbox.frame_num <= len(frames)-1-editing_frame_index and (hitbox.end_frame_num == -1 or len(frames)-editing_frame_index < hitbox.end_frame_num):
+                    hitbox.draw(display)
+        if hitbox_p1:
+            hitbox_p2 = pygame.mouse.get_pos()
+            tl = [min(hitbox_p1[0], hitbox_p2[0]), min(hitbox_p1[1], hitbox_p2[1])]
+            br = [max(hitbox_p1[0], hitbox_p2[0]), max(hitbox_p1[1], hitbox_p2[1])]
+            w,h = br[0]-tl[0], br[1]-tl[1]
+            pygame.draw.rect(display, [255,255,255,0], pygame.Rect(tl, [w,h]))
+        for sprite in current_frame.objects+hitboxes:
             sprite.highlighted = False
             dist_to_mouse = sprite.distance_to(mouse_pos)
             if dist_to_mouse < shortest_distance or closest == None:
