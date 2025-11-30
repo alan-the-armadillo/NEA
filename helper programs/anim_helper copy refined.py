@@ -5,6 +5,7 @@ import time
 from copy import copy
 pygame.font.init()
 font = pygame.font.SysFont("consolas", 50)
+hitbox_font = pygame.font.SysFont("consolas", 20)
 
 import math
 
@@ -538,6 +539,16 @@ def draw_child_relations(surface):
         except IndexError:
             continue
 
+
+def get_obj_rotated_point(obj:Sprite):
+        """Get save data position (center or specified save point)"""
+        try: #Specified center point
+            rot_center = (pygame.Vector2(sprites[obj.name][1])*SCALE).rotate(obj.get_full_rot()-obj.rot)
+        except: #No specified center point (take actual center)
+            rot_center = pygame.Vector2(obj.img.get_rect().center).rotate(obj.get_full_rot()-obj.rot)
+        pos = obj.get_partial_rot_data()[1]
+        return [pos[0]+rot_center[0], pos[1]+rot_center[1]]
+
 def save():
     global frames, current_frame
     try:
@@ -593,15 +604,6 @@ def save():
 
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
-
-    def get_obj_rotated_point(obj:Sprite):
-        """Get save data position (center or specified save point)"""
-        try: #Specified center point
-            rot_center = (pygame.Vector2(sprites[obj.name][1])*SCALE).rotate(obj.get_full_rot()-obj.rot)
-        except: #No specified center point (take actual center)
-            rot_center = pygame.Vector2(obj.img.get_rect().center).rotate(obj.get_full_rot()-obj.rot)
-        pos = obj.get_partial_rot_data()[1]
-        return [pos[0]+rot_center[0], pos[1]+rot_center[1]]
 
     #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
@@ -686,6 +688,29 @@ def flip_animation_data():
         frame.objects = copies
         frame.render()    
     onion_skin(onion_layer)
+
+def render_hitbox(surface, hitbox:Sprite):
+    hitbox.img.fill(0)
+    hitbox.img.fill([255,255,255,100])
+    rect = hitbox.get_rect()
+    tl = rect.topleft
+    try:
+        torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
+    except:
+        torso = list(filter(lambda o: o.name == "torso",current_frame.objects))[0]
+    origin = get_obj_rotated_point(torso)
+    rel_tl = [tl[0]-origin[0], tl[1]-origin[1]]
+    x,y = rect.center
+    dim = rect.size
+    tl_text = f"REL_TL: {rel_tl}"
+    dim_text = f"DIM: {dim}"
+    frame_text = f"START FRAME: {hitbox.frame_num+1}"
+    end_frame_text = f"END FRAME: {max(hitbox.end_frame_num-1, -1)}"
+    hitbox.img.blit(hitbox_font.render(tl_text, True, "black"),[x-tl[0]-len(tl_text)*5, y-tl[1]-40])
+    hitbox.img.blit(hitbox_font.render(dim_text, True, "black"),[x-tl[0]-len(dim_text)*5, y-tl[1]-20])
+    hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-tl[0]-len(frame_text)*5, y-tl[1]+20])
+    hitbox.img.blit(hitbox_font.render(end_frame_text, True, "black"),[x-tl[0]-len(end_frame_text)*5, y-tl[1]+40])
+    hitbox.draw(surface)
 
 clock = pygame.time.Clock()
 running = True
@@ -824,7 +849,6 @@ while running:
                 w,h = br[0]-tl[0], br[1]-tl[1]
                 hitboxes.append(Sprite("hitbox", sprites["torso"][0], tl, 0))
                 hitboxes[-1].img = pygame.Surface((w,h), pygame.SRCALPHA)
-                hitboxes[-1].img.fill([255,255,255,100])
                 if not anim_playing and not editing:
                     hitboxes[-1].frame_num = len(frames)-1
                 elif editing:
@@ -891,7 +915,7 @@ while running:
         current_frame.draw(display)
         for hitbox in hitboxes:
             if not (hitbox.frame_num <= frame_num < hitbox.end_frame_num):
-                hitbox.draw(display)
+                render_hitbox(display, hitbox)
         frame_num = (frame_num - 1) % len(frames)
 
     else:
@@ -923,10 +947,10 @@ while running:
         for hitbox in hitboxes:
             if not anim_playing and not editing:
                 if hitbox.frame_num <= len(frames)-1 and (hitbox.end_frame_num == -1 or len(frames) < hitbox.end_frame_num):
-                    hitbox.draw(display)
+                    render_hitbox(display, hitbox)
             elif editing:
                 if hitbox.frame_num <= len(frames)-1-editing_frame_index and (hitbox.end_frame_num == -1 or len(frames)-editing_frame_index < hitbox.end_frame_num):
-                    hitbox.draw(display)
+                    render_hitbox(display, hitbox)
         if hitbox_p1:
             hitbox_p2 = pygame.mouse.get_pos()
             tl = [min(hitbox_p1[0], hitbox_p2[0]), min(hitbox_p1[1], hitbox_p2[1])]

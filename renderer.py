@@ -179,7 +179,7 @@ system change to better the efficiency so it saves limbs in relation to the base
 
 class PlayerRenderer():
     SCALE = 5
-    FPS = 12
+    FPS = 14
     MSPF = 1000/FPS
     with open("anim_data_refined.json", "r") as file:
         animation_data = json.load(file)
