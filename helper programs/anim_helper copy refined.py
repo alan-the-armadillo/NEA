@@ -689,9 +689,7 @@ def flip_animation_data():
         frame.render()    
     onion_skin(onion_layer)
 
-def render_hitbox(surface, hitbox:Sprite):
-    hitbox.img.fill(0)
-    hitbox.img.fill([255,255,255,100])
+def get_hitbox_info(hitbox:Sprite):
     rect = hitbox.get_rect()
     tl = rect.topleft
     try:
@@ -704,16 +702,26 @@ def render_hitbox(surface, hitbox:Sprite):
     x,y = x-tl[0], y-tl[1]
     dim = rect.size
     dim = [round(dim[0]/SCALE,2), round(dim[1]/SCALE,2)]
+    start_frame = hitbox.frame_num+1
+    end_frame = max(hitbox.end_frame_num-1, -1)
+    return [rel_tl, dim, start_frame, end_frame]
+
+def render_hitbox(surface, hitbox:Sprite):
+    hitbox.img.fill(0)
+    hitbox.img.fill([255,255,255,100])
+    rel_tl, dim, start_frame, end_frame = get_hitbox_info(hitbox)
+    tl = hitbox.get_rect().topleft
+    x,y = hitbox.get_rect().center
+    x,y = x-tl[0], y-tl[1]
     tl_text = f"REL_TL: {rel_tl}"
     dim_text = f"DIM: {dim}"
-    frame_text = f"START FRAME: {hitbox.frame_num+1}"
-    end_frame_text = f"END FRAME: {max(hitbox.end_frame_num-1, -1)}"
+    frame_text = f"START FRAME: {start_frame}"
+    end_frame_text = f"END FRAME: {max(end_frame, -1)}"
     hitbox.img.blit(hitbox_font.render(tl_text, True, "black"),[x-len(tl_text)*5, y-40])
     hitbox.img.blit(hitbox_font.render(dim_text, True, "black"),[x-len(dim_text)*5, y-20])
     hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-len(frame_text)*5, y+20])
     hitbox.img.blit(hitbox_font.render(end_frame_text, True, "black"),[x-len(end_frame_text)*5, y+40])
     hitbox.draw(surface)
-    return rel_tl, dim, hitbox.frame_num+1, max(hitbox.end_frame_num-1, -1)
 
 clock = pygame.time.Clock()
 running = True
@@ -828,10 +836,28 @@ while running:
                     child.rot = child.get_full_rot()
                     child.parent = None
                 child = None
+            #Flip animation data
             elif event.key == pygame.K_f and keys[pygame.K_LCTRL]:
                 pygame.display.quit()
                 flip_animation_data()
                 make_display()
+            #Display hitbox info
+            elif event.key == pygame.K_h and keys[pygame.K_LCTRL] and keys[pygame.K_LSHIFT]:
+                pygame.display.quit()
+                print("\033[1;32m")
+                for h in hitboxes:
+                    rel_tl, dim, start_frame, end_frame = get_hitbox_info(h)
+                    print("#"*60)
+                    print(f"RELATIVE TOPLEFT:\t{rel_tl}")
+                    print(f"DIMENSIONS:\t\t{dim}")
+                    print(f"START FRAME NUM:\t{start_frame}")
+                    print(f"END FRAME NUM:\t\t{end_frame}")
+                print("#"*60)
+                print("\033[0m")
+                print("Wait 5 seconds to return to animating.")
+                time.sleep(5)
+                make_display()
+            
         #Start to drag sprite (if clicked on a sprite)
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if keys[pygame.K_LSHIFT]:
