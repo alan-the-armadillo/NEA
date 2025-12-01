@@ -713,6 +713,7 @@ def render_hitbox(surface, hitbox:Sprite):
     hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-len(frame_text)*5, y+20])
     hitbox.img.blit(hitbox_font.render(end_frame_text, True, "black"),[x-len(end_frame_text)*5, y+40])
     hitbox.draw(surface)
+    return rel_tl, dim, hitbox.frame_num+1, max(hitbox.end_frame_num-1, -1)
 
 clock = pygame.time.Clock()
 running = True
