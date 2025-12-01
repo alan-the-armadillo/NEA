@@ -181,7 +181,7 @@ class PlayerRenderer():
     SCALE = 5
     FPS = 14
     MSPF = 1000/FPS
-    with open("anim_data_refined.json", "r") as file:
+    with open("anim_data.json", "r") as file:
         animation_data = json.load(file)
     with open("sprite_offsets.json", "r") as file:
         offset_data = json.load(file)
