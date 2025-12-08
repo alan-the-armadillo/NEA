@@ -34,7 +34,14 @@
         "base damage": 3.0,
         "weapon type": "Melee",
         "slot size": "1",
-        "img": "debug_melee.png"
+        "img": "debug_melee.png",
+        "hitboxes" : {
+            "anim0" : {
+                "name":"sword slash",
+                "left":{"pos":[23.53, 6.47], "dim":[22.07, 36.53], "start frame":5, "end frame":9},
+                "right":{"pos":[-1.67, 6.8], "dim":[22.07, 36.53], "start frame":5, "end frame":9}
+            }
+        }
     },
     "w1": {
         "type": "Weapon",

@@ -691,7 +691,7 @@ def flip_animation_data():
 
 def get_hitbox_info(hitbox:Sprite):
     rect = hitbox.get_rect()
-    tl = rect.topleft
+    tl = rect.center
     try:
         torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
     except:
@@ -702,8 +702,8 @@ def get_hitbox_info(hitbox:Sprite):
     x,y = x-tl[0], y-tl[1]
     dim = rect.size
     dim = [round(dim[0]/SCALE,2), round(dim[1]/SCALE,2)]
-    start_frame = hitbox.frame_num+1
-    end_frame = max(hitbox.end_frame_num-1, -1)
+    start_frame = hitbox.frame_num
+    end_frame = hitbox.end_frame_num-1
     return [rel_tl, dim, start_frame, end_frame]
 
 def render_hitbox(surface, hitbox:Sprite):
@@ -715,8 +715,8 @@ def render_hitbox(surface, hitbox:Sprite):
     x,y = x-tl[0], y-tl[1]
     tl_text = f"REL_TL: {rel_tl}"
     dim_text = f"DIM: {dim}"
-    frame_text = f"START FRAME: {start_frame}"
-    end_frame_text = f"END FRAME: {max(end_frame, -1)}"
+    frame_text = f"LOAD FRAME: {start_frame+1}"
+    end_frame_text = f"UNLOAD FRAME: {end_frame+1}"
     hitbox.img.blit(hitbox_font.render(tl_text, True, "black"),[x-len(tl_text)*5, y-40])
     hitbox.img.blit(hitbox_font.render(dim_text, True, "black"),[x-len(dim_text)*5, y-20])
     hitbox.img.blit(hitbox_font.render(frame_text, True, "black"),[x-len(frame_text)*5, y+20])
@@ -850,8 +850,8 @@ while running:
                     print("#"*60)
                     print(f"RELATIVE TOPLEFT:\t{rel_tl}")
                     print(f"DIMENSIONS:\t\t{dim}")
-                    print(f"START FRAME NUM:\t{start_frame}")
-                    print(f"END FRAME NUM:\t\t{end_frame}")
+                    print(f"LOAD FRAME NUM:\t\t{start_frame}")
+                    print(f"UNLOAD FRAME NUM:\t{end_frame}")
                 print("#"*60)
                 print("\033[0m")
                 print("Wait 5 seconds to return to animating.")

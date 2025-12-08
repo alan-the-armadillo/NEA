@@ -17,6 +17,9 @@ class Collider(Hitbox):
 class Interactor(Hitbox):
     all:list["Interactor"] = []
 
+class HittingBox(Hitbox):
+    all:list["HittingBox"] = []
+
 class WallCollider(Collider):
     pass
 

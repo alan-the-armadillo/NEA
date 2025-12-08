@@ -96,9 +96,9 @@ while running:
                 else:
                     g.renderer.player.renderer.unload_anim("wild")
             elif event.key == pygame.K_g:
-                g.renderer.player.renderer.load_anim("sword slash left", True)
+                g.renderer.player.renderer.begin_attack_anim("left", True)
             elif event.key == pygame.K_f:
-                g.renderer.player.renderer.load_anim("sword slash right", True)
+                g.renderer.player.renderer.begin_attack_anim("right", True)
         elif event.type == pygame.KEYUP:
             if event.key == controls["down"]:
                 g.player.add_to_motion_vector([0,-1])

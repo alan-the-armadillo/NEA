@@ -181,6 +181,7 @@ class PlayerRenderer():
     SCALE = 5
     FPS = 14
     MSPF = 1000/FPS
+    last_direction = True
     with open("anim_data.json", "r") as file:
         animation_data = json.load(file)
     with open("sprite_offsets.json", "r") as file:
@@ -211,9 +212,12 @@ class PlayerRenderer():
             "right melee" : {}
         }
         # [frame_num, clock, time since last frame, sing_run]
-        self.anims= {
+        self.anims = {
             anim : [0, pygame.time.Clock(), 0, False],
         }
+        # [[HittingBox, start_frame, end_frame]]
+        self.l_hitboxes = []
+        self.r_hitboxes = []
 
     def __get_direction_anim_name(self, anim:str):
         """Switches left-right if facing left.
@@ -242,6 +246,31 @@ class PlayerRenderer():
         This should be used both to find values in the cache as well as making the key for new values in the cache.
         """
         return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
+    
+    def load_hitbox_data(self, weapon, side):
+        return weapon.hitboxes["anim0"][side]
+
+    def load_hitbox(self, weapon, side, base_anim_name):
+        hitbox_data = self.load_hitbox_data(weapon, side)
+        dim = hitbox_data["dim"]
+        hitbox = HittingBox([0,0], [dim[0]*self.SCALE, dim[1]*self.SCALE])
+        if side == "left":
+            self.l_hitboxes.append([base_anim_name, hitbox_data["start frame"], hitbox_data["end frame"], hitbox_data["pos"], hitbox, weapon])
+        else:
+            self.r_hitboxes.append([base_anim_name, hitbox_data["start frame"], hitbox_data["end frame"], hitbox_data["pos"], hitbox, weapon])
+        return hitbox
+
+    def load_opposite_hitboxes(self):
+        new_hitboxes = []
+        for hitbox in HittingBox.all:
+            current_lhitboxes = list(filter(lambda h: h[4]==hitbox, self.l_hitboxes))
+            current_rhitboxes = list(filter(lambda h: h[4]==hitbox, self.r_hitboxes))
+            if current_lhitboxes:
+                new_hitboxes.append(self.load_hitbox(current_lhitboxes[0][5], "right", current_lhitboxes[0][0]))
+            elif current_rhitboxes:
+                new_hitboxes.append(self.load_hitbox(current_rhitboxes[0][5], "left", current_rhitboxes[0][0]))
+        HittingBox.all = new_hitboxes
+
 
     def load_anim(self, anim:str, single_run:bool, insert_index=0):
         """Loads in an animation for all applicable limbs.
@@ -256,6 +285,12 @@ class PlayerRenderer():
         """Unloads and animation for all applicable limbs.
         If this results in an animation uncovering from not playing, then it will be reset to frame 0.
         """
+        #Unload remaining hitboxes
+        print(len(HittingBox.all), len(self.l_hitboxes+self.r_hitboxes))
+        hitboxes = list(filter(lambda h: h[0]==anim and (h[3] == self.anims[anim][0] or h[3] == -1), self.l_hitboxes+self.r_hitboxes))
+        [HittingBox.all.remove(h[4]) for h in hitboxes]
+        print(len(HittingBox.all), len(self.l_hitboxes+self.r_hitboxes))
+
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.pop(anim)
         #Test which animations are loaded (playing) currently
@@ -333,6 +368,19 @@ class PlayerRenderer():
                             unloads.append(animation)
                         else: #Looping
                             self.anims[animation][0] = 0
+                    
+                    #Load relevant hitboxes
+                    for side, side_hitboxes in [["left", self.l_hitboxes], ["right", self.r_hitboxes]]:
+                        if self.player.direction:
+                            real_side = side
+                        else:
+                            real_side = ["left", "right"][["left", "right"].index(side)-1]
+                        hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0], side_hitboxes))
+                        [HittingBox.all.append(hitbox[4]) for hitbox in hitboxes]
+                        #Unload relevant hitboxes
+                        hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[2]==self.anims[animation][0], side_hitboxes))
+                        ############################################## SOMETHING WRONG HERE (error upon turning back left during animation)
+                        [HittingBox.all.remove(hitbox[4]) for hitbox in hitboxes]
         #Unload any animations flagged for unloading.
         [self.unload_anim(animation) for animation in unloads]
 
@@ -343,6 +391,19 @@ class PlayerRenderer():
         offset = [0,-30*PlayerRenderer.SCALE+self.player.collider.rect.height]
         render_data = []
 
+        if self.player.direction != self.last_direction:
+            self.load_opposite_hitboxes()
+            self.last_direction = not self.last_direction
+            ############################################## SOMETHING WRONG HERE (hitbox direction not fully reversed)
+        for hitbox in HittingBox.all:
+            hitbox_data = list(filter(lambda h: h[4]==hitbox, self.l_hitboxes+self.r_hitboxes))[0]
+            rel_pos = hitbox_data[3]
+            if not self.player.direction:
+                rel_pos = [-rel_pos[0], rel_pos[1]]
+            true_pos = [player_pos[0]+rel_pos[0]*self.SCALE+offset[0], player_pos[1]+rel_pos[1]*self.SCALE+offset[1]]
+            hitbox.rect.center = true_pos
+            pygame.draw.rect(surface, "red", hitbox.rect)
+
         for limb in self.limbs:
             try:
                 animation = self.limbs[limb][0]
@@ -352,10 +413,7 @@ class PlayerRenderer():
                     true_pos = [rel_pos[0]+player_pos[0], rel_pos[1]+player_pos[1]]
                 #Otherwise, creates frame
                 else:
-                    if self.player.direction:
-                        true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
-                    else:
-                        true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
+                    true_pos, rotated_img, seq = self.load_frame(limb, animation, player_pos)
 
                 render_data.append([rotated_img, true_pos, seq])
             except AttributeError:
@@ -364,3 +422,13 @@ class PlayerRenderer():
         render_data = sorted(render_data, key=lambda o:o[2])
         for limb in render_data:
             surface.blit(limb[0], [limb[1][0]+offset[0], limb[1][1]+offset[1]])
+    
+    def begin_attack_anim(self, side:str, single_run:bool):
+        weapon = self.player.inventory[side+" melee"]
+        animation = weapon.hitboxes["anim0"]["name"]
+        if animation not in self.animation_data:
+            animation += " " + side
+            if animation not in self.animation_data:
+                raise KeyError (f"Animation name '{animation}' not recognised, nor '{animation} {side}'.")
+        self.load_anim(animation, single_run)
+        self.load_hitbox(weapon, side, animation[:-6]+animation[-6:].replace(" "+side, ""))
