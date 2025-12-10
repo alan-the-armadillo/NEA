@@ -126,19 +126,17 @@ class Renderer:
         for i,string in enumerate(text):
             self.overlay.blit(font.render(string, True, "white"), [100,100+i*font_size])
         new_base = 100+(len(text)+1)*font_size
-        left_h_text = f"LEFT HITBOXES : {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6]) for h in self.player.renderer.l_hitboxes]}"
-        right_h_text = f"RIGHT HITBOXES: {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6]) for h in self.player.renderer.r_hitboxes]}"
 
         self.overlay.blit(font.render("LEFT HITBOXES: ", True, "white"), [100, new_base-font_size])
         for i, h in enumerate(self.player.renderer.l_hitboxes):
-            color = "red" if h[4] in HittingBox.all else "white"
-            self.overlay.blit(font.render(str((h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6], h[7])), True, color), [100, new_base+i*font_size])
+            color = "red" if h["hitbox"] in HittingBox.all else "white"
+            self.overlay.blit(font.render(str((h["base anim name"], h["start"], h["end"], h["pos"], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h["weapon"])], h["side"])), True, color), [100, new_base+i*font_size])
         new_base += (len(self.player.renderer.l_hitboxes)+1)*font_size
 
         self.overlay.blit(font.render("RIGHT HITBOXES: ", True, "white"), [100, new_base-font_size])
         for i, h in enumerate(self.player.renderer.r_hitboxes):
-            color = "red" if h[4] in HittingBox.all else "white"
-            self.overlay.blit(font.render(str((h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6], h[7])), True, color), [100, new_base+i*font_size])
+            color = "red" if h["hitbox"] in HittingBox.all else "white"
+            self.overlay.blit(font.render(str((h["base anim name"], h["start"], h["end"], h["pos"], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h["weapon"])], h["side"])), True, color), [100, new_base+i*font_size])
         
 
         #self.overlay.blit(font.render(left_h_text, True, left_col), [100, 100+len(text)*font_size])
@@ -287,30 +285,29 @@ class PlayerRenderer():
         return weapon.hitboxes["anim0"][side]
 
     def format_hitbox_data(self, weapon, base_anim_name, hitbox, hitbox_data):
-        return [
-            base_anim_name, 
-            hitbox_data["start frame"], 
-            hitbox_data["end frame"], 
-            hitbox_data["pos"], 
-            hitbox, 
-            weapon, 
-            self._get_directionless_weapon_name(weapon), 
-            self._get_weapon_name_direction(list(self.player.inventory.keys())[list(self.player.inventory.values()).index(weapon)])
-        ]
+        return {
+            "base anim name" : base_anim_name, 
+            "start" : hitbox_data["start frame"], 
+            "end" : hitbox_data["end frame"], 
+            "pos" : hitbox_data["pos"], 
+            "hitbox" : hitbox, 
+            "weapon" : weapon, 
+            "side" : self._get_weapon_name_direction(list(self.player.inventory.keys())[list(self.player.inventory.values()).index(weapon)])
+        }
 
     def load_hitbox(self, weapon, side, base_anim_name, refuse_duplicates = True):
         hitbox_data = self.load_hitbox_data(weapon, side)
         formatted_data = self.format_hitbox_data(weapon, base_anim_name, None, hitbox_data)
         hitbox_side = self.l_hitboxes if side == "left" else self.r_hitboxes
-        same_hitbox = list(filter(lambda h: formatted_data[:4]==h[:4] and formatted_data[5]==h[5], hitbox_side))
+        same_hitbox = list(filter(lambda h: list(formatted_data.values())[:4]==list(h.values())[:4] and formatted_data["weapon"]==h["weapon"], hitbox_side))
         if len(same_hitbox) == 0 or not refuse_duplicates:
             dim = hitbox_data["dim"]
             hitbox = HittingBox([0,0], [dim[0]*self.SCALE, dim[1]*self.SCALE])
-            formatted_data[4] = hitbox
+            formatted_data["hitbox"] = hitbox
             hitbox_side.append(formatted_data)
             return hitbox
         else:
-            return same_hitbox[0][4]
+            return same_hitbox[0]["hitbox"]
 
     def load_opposite_hitbox(self, weapon, side, base_anim_name):
         if side == "left":
@@ -322,8 +319,8 @@ class PlayerRenderer():
     def load_opposite_hitboxes(self):
         new_hitboxes = []
         for hitbox in HittingBox.all:
-            current_lhitboxes = list(filter(lambda h: h[4]==hitbox, self.l_hitboxes))
-            current_rhitboxes = list(filter(lambda h: h[4]==hitbox, self.r_hitboxes))
+            current_lhitboxes = list(filter(lambda h: h["hitbox"]==hitbox, self.l_hitboxes))
+            current_rhitboxes = list(filter(lambda h: h["hitbox"]==hitbox, self.r_hitboxes))
             if current_lhitboxes:
                 new_hitboxes.append(self.load_hitbox(current_lhitboxes[0][5], "right", current_lhitboxes[0][0]))
             elif current_rhitboxes:
@@ -345,8 +342,8 @@ class PlayerRenderer():
         If this results in an animation uncovering from not playing, then it will be reset to frame 0.
         """
         #Unload remaining hitboxes
-        hitboxes = list(filter(lambda h: h[0]==anim and (h[3] == self.anims[anim][0] or h[3] == -1), self.l_hitboxes+self.r_hitboxes))
-        [HittingBox.all.remove(h[4]) for h in hitboxes]
+        hitboxes = list(filter(lambda h: h["base anim name"]==anim and (h["pos"] == self.anims[anim][0] or h["pos"] == -1), self.l_hitboxes+self.r_hitboxes))
+        [HittingBox.all.remove(h["hitbox"]) for h in hitboxes]
 
         anim_data = PlayerRenderer.animation_data[anim]
         self.anims.pop(anim)
@@ -430,21 +427,21 @@ class PlayerRenderer():
                     for side, side_hitboxes in [["left", self.l_hitboxes], ["right", self.r_hitboxes]]:
                         if self.player.direction:
                             real_side = side
-                            hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0] and h[7]==side, side_hitboxes))
+                            hitboxes = list(filter(lambda h: h["base anim name"]+" "+real_side==animation and h["start"]==self.anims[animation][0] and h["side"]==side, side_hitboxes))
                         else:
                             real_side = ["left", "right"][["left", "right"].index(side)-1]
-                            hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0] and h[7]!=side, side_hitboxes))
-                        [HittingBox.all.append(hitbox[4]) for hitbox in hitboxes]
+                            hitboxes = list(filter(lambda h: h["base anim name"]+" "+real_side==animation and h["start"]==self.anims[animation][0] and h["side"]!=side, side_hitboxes))
+                        [HittingBox.all.append(hitbox["hitbox"]) for hitbox in hitboxes]
                         #Unload relevant hitboxes
-                        hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[2]==self.anims[animation][0] and h[4] in HittingBox.all, side_hitboxes))
+                        hitboxes = list(filter(lambda h: h["base anim name"]+" "+real_side==animation and h["end"]==self.anims[animation][0] and h["hitbox"] in HittingBox.all, side_hitboxes))
                         ############################################## SOMETHING WRONG HERE (error upon turning back left during animation)
                         try:
-                            [HittingBox.all.remove(hitbox[4]) for hitbox in hitboxes]
+                            [HittingBox.all.remove(hitbox["hitbox"]) for hitbox in hitboxes]
                         except Exception as e:
                             print(HittingBox.all)
-                            print([h[4] for h in hitboxes])
-                            print([h[4] for h in side_hitboxes])
-                            print([h[4] for h in hitboxes])
+                            print([h["hitbox"] for h in hitboxes])
+                            print([h["hitbox"] for h in side_hitboxes])
+                            print([h["hitbox"] for h in hitboxes])
                             raise e
         #Unload any animations flagged for unloading.
         [self.unload_anim(animation) for animation in unloads]
@@ -460,8 +457,8 @@ class PlayerRenderer():
             self.load_opposite_hitboxes()
             self.last_direction = not self.last_direction
         for hitbox in HittingBox.all:
-            hitbox_data = list(filter(lambda h: h[4]==hitbox, self.l_hitboxes+self.r_hitboxes))[0]
-            rel_pos = hitbox_data[3]
+            hitbox_data = list(filter(lambda h: h["hitbox"]==hitbox, self.l_hitboxes+self.r_hitboxes))[0]
+            rel_pos = hitbox_data["pos"]
             if not self.player.direction:
                 rel_pos = [-rel_pos[0], rel_pos[1]]
             true_pos = [player_pos[0]+rel_pos[0]*self.SCALE+offset[0], player_pos[1]+rel_pos[1]*self.SCALE+offset[1]]
