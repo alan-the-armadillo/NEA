@@ -122,13 +122,29 @@ class Renderer:
                 f"HITTINGBOX    : {len(HittingBox.all)}",
                 f"RENDERER LEFT : {len(self.player.renderer.l_hitboxes)}",
                 f"RENDERER RIGHT: {len(self.player.renderer.r_hitboxes)}",
-                f"LEFT HITBOXES : {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])]) for h in self.player.renderer.l_hitboxes]}",
-                f"RIGHT HITBOXES: {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])]) for h in self.player.renderer.r_hitboxes]}"
                 ]
         for i,string in enumerate(text):
             self.overlay.blit(font.render(string, True, "white"), [100,100+i*font_size])
+        new_base = 100+(len(text)+1)*font_size
+        left_h_text = f"LEFT HITBOXES : {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6]) for h in self.player.renderer.l_hitboxes]}"
+        right_h_text = f"RIGHT HITBOXES: {[(h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6]) for h in self.player.renderer.r_hitboxes]}"
+
+        self.overlay.blit(font.render("LEFT HITBOXES: ", True, "white"), [100, new_base-font_size])
+        for i, h in enumerate(self.player.renderer.l_hitboxes):
+            color = "red" if h[4] in HittingBox.all else "white"
+            self.overlay.blit(font.render(str((h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6], h[7])), True, color), [100, new_base+i*font_size])
+        new_base += (len(self.player.renderer.l_hitboxes)+1)*font_size
+
+        self.overlay.blit(font.render("RIGHT HITBOXES: ", True, "white"), [100, new_base-font_size])
+        for i, h in enumerate(self.player.renderer.r_hitboxes):
+            color = "red" if h[4] in HittingBox.all else "white"
+            self.overlay.blit(font.render(str((h[0], h[1], h[2], h[3], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h[5])], h[6], h[7])), True, color), [100, new_base+i*font_size])
+        
+
+        #self.overlay.blit(font.render(left_h_text, True, left_col), [100, 100+len(text)*font_size])
+        #self.overlay.blit(font.render(right_h_text, True, right_col), [100, 100+(len(text)+1)*font_size])
         w = self.overlay.get_width()
-        self.overlay.blit(self.map, [w-self.map.get_width(),0])
+        #self.overlay.blit(self.map, [w-self.map.get_width(),0])
 
         x_end = 300*round(self.player.HP/self.player.max_HP)
         pygame.draw.rect(self.overlay, [255,0,0], pygame.Rect([0,0], [x_end,50]))
@@ -249,6 +265,17 @@ class PlayerRenderer():
             elif "right" in limb:
                 return limb.replace("right", "left")
         return limb
+    
+    def _get_directionless_weapon_name(self, weapon):
+        if weapon.name[:5] == "left ":
+            return weapon.name[5:]
+        elif weapon.name[:6] == "right ":
+            return weapon.name[6:]
+        else:
+            return weapon.name
+
+    def _get_weapon_name_direction(self, weapon_name):
+        return weapon_name[:5].strip()
 
     def __get_cache_frame_name(self, anim):
         """Returns the possible key to the anim frame data.
@@ -260,7 +287,16 @@ class PlayerRenderer():
         return weapon.hitboxes["anim0"][side]
 
     def format_hitbox_data(self, weapon, base_anim_name, hitbox, hitbox_data):
-        return [base_anim_name, hitbox_data["start frame"], hitbox_data["end frame"], hitbox_data["pos"], hitbox, weapon]
+        return [
+            base_anim_name, 
+            hitbox_data["start frame"], 
+            hitbox_data["end frame"], 
+            hitbox_data["pos"], 
+            hitbox, 
+            weapon, 
+            self._get_directionless_weapon_name(weapon), 
+            self._get_weapon_name_direction(list(self.player.inventory.keys())[list(self.player.inventory.values()).index(weapon)])
+        ]
 
     def load_hitbox(self, weapon, side, base_anim_name, refuse_duplicates = True):
         hitbox_data = self.load_hitbox_data(weapon, side)
@@ -275,6 +311,13 @@ class PlayerRenderer():
             return hitbox
         else:
             return same_hitbox[0][4]
+
+    def load_opposite_hitbox(self, weapon, side, base_anim_name):
+        if side == "left":
+            opp_side_name = "right"
+        else:
+            opp_side_name = "left"
+        return self.load_hitbox(weapon, opp_side_name, base_anim_name)
 
     def load_opposite_hitboxes(self):
         new_hitboxes = []
@@ -387,9 +430,10 @@ class PlayerRenderer():
                     for side, side_hitboxes in [["left", self.l_hitboxes], ["right", self.r_hitboxes]]:
                         if self.player.direction:
                             real_side = side
+                            hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0] and h[7]==side, side_hitboxes))
                         else:
                             real_side = ["left", "right"][["left", "right"].index(side)-1]
-                        hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0], side_hitboxes))
+                            hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[1]==self.anims[animation][0] and h[7]!=side, side_hitboxes))
                         [HittingBox.all.append(hitbox[4]) for hitbox in hitboxes]
                         #Unload relevant hitboxes
                         hitboxes = list(filter(lambda h: h[0]+" "+real_side==animation and h[2]==self.anims[animation][0] and h[4] in HittingBox.all, side_hitboxes))
@@ -451,4 +495,8 @@ class PlayerRenderer():
             if animation not in self.animation_data:
                 raise KeyError (f"Animation name '{animation}' not recognised, nor '{animation} {side}'.")
         self.load_anim(animation, single_run)
-        self.load_hitbox(weapon, side, animation[:-6]+animation[-6:].replace(" "+side, ""))
+        if not self.player.direction:
+            loading_func = self.load_opposite_hitbox
+        else:
+            loading_func = self.load_hitbox
+        loading_func(weapon, side, animation[:-6]+animation[-6:].replace(" "+side, ""))
