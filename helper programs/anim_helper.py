@@ -23,7 +23,7 @@ filename = os.path.join(dir, "anim_data.json")
 #By how much sprites are scaled up, and then positions are scaled down for saving
 SCALE = 15
 
-def custom_dump(obj, fp, indent: int = 4, inline_level: int = 3):
+def custom_dump(obj, fp, indent: int = 4, inline_level: int = 4):
     """Use to write data to a json file with a custom formatting.
     Arguments:
         obj : the actual object you want to save
@@ -477,7 +477,7 @@ def load_anim():
                             fill_in_affirm = True
                     make_display()
                     affirmed = True
-                    anim_data = data[anim_name]
+                    anim_data = data[anim_name]["animation"]
                     if fill_in == "y":
                         try:
                             unloaded_objects = [obj for obj in frames[-1].objects if obj.name not in list(anim_data.keys())]
@@ -597,6 +597,29 @@ def save():
                 valid = True
             else:
                 print("Input must be 'y' or 'n'.")
+    
+    #Ask user if animation is a child
+    found = False
+    child = False
+    parent = None
+    while not found:
+        child = input("Is this animation a child animation [y,n]?  ").lower()
+        if child == "y":
+            child = True
+            found = True
+        elif child == "n":
+            child = False
+            found = True
+        else:
+            print("Input must be 'y' or 'n'.")
+        while child:
+            parent = input("Enter the name of this animation's parent.  ")
+            if parent in data:
+                child = False
+            else:
+                print(f"Parent animation '{parent}' not recognised.  ")
+                found = False
+                child = False
 
     #Save current frame
     save_current_frame = current_frame
@@ -630,7 +653,7 @@ def save():
     for obj_name in list(save_data.keys()):
         save_data[obj_name] = save_data[obj_name][::-1]
 
-    save_data = {anim_name:save_data}
+    save_data = {anim_name:{"parent":parent, "animation":save_data}}
 
     #Add new data to old data
     data.update(save_data)

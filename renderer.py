@@ -234,10 +234,11 @@ class PlayerRenderer():
             "left melee" : {},
             "right melee" : {}
         }
-        # [frame_num, clock, time since last frame, sing_run]
+        # [frame_num, clock, time since last frame, single_run]
         self.anims = {
             anim : [0, pygame.time.Clock(), 0, False],
         }
+
         # [[HittingBox, start_frame, end_frame]]
         self.l_hitboxes = []
         self.r_hitboxes = []
