@@ -142,7 +142,7 @@ class Renderer:
         #self.overlay.blit(font.render(left_h_text, True, left_col), [100, 100+len(text)*font_size])
         #self.overlay.blit(font.render(right_h_text, True, right_col), [100, 100+(len(text)+1)*font_size])
         w = self.overlay.get_width()
-        #self.overlay.blit(self.map, [w-self.map.get_width(),0])
+        self.overlay.blit(self.map, [w-self.map.get_width(),0])
 
         x_end = 300*round(self.player.HP/self.player.max_HP)
         pygame.draw.rect(self.overlay, [255,0,0], pygame.Rect([0,0], [x_end,50]))
@@ -322,9 +322,9 @@ class PlayerRenderer():
             current_lhitboxes = list(filter(lambda h: h["hitbox"]==hitbox, self.l_hitboxes))
             current_rhitboxes = list(filter(lambda h: h["hitbox"]==hitbox, self.r_hitboxes))
             if current_lhitboxes:
-                new_hitboxes.append(self.load_hitbox(current_lhitboxes[0][5], "right", current_lhitboxes[0][0]))
+                new_hitboxes.append(self.load_hitbox(current_lhitboxes[0]["weapon"], "right", current_lhitboxes[0]["base anim name"]))
             elif current_rhitboxes:
-                new_hitboxes.append(self.load_hitbox(current_rhitboxes[0][5], "left", current_rhitboxes[0][0]))
+                new_hitboxes.append(self.load_hitbox(current_rhitboxes[0]["weapon"], "left", current_rhitboxes[0]["base anim name"]))
         HittingBox.all = new_hitboxes
 
 
