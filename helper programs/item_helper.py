@@ -1,5 +1,55 @@
 import json
 
+def custom_dump(obj, fp, indent: int = 4, inline_level: int = 4):
+    """Use to write data to a json file with a custom formatting.
+    Arguments:
+        obj : the actual object you want to save
+        fp : the file opened that will be written to
+        indent : how many spaces per indent
+        inline_level : at this level and further in the structure, data will be written in one line"""
+    def inline(o):
+        if isinstance(o, list):
+            return "[" + ", ".join([inline(value) for value in o]) + "]"
+        elif isinstance(o, dict):
+            return "{" + ", ".join([f"{json.dumps(key)}: {inline(value)}" for key,value in o.items()]) + "}"
+        return json.dumps(o)
+    def write(o, depth):
+        curr_indent = ' ' * indent*depth
+        #If a dictionary
+        if isinstance(o, dict):
+            #If at end of depth, one line
+            if depth >= inline_level:
+                fp.write(inline(o))
+                return
+            #Otherwise, write it in multiple lines
+            fp.write("{\n")
+            for i, (key,value) in enumerate(o.items()):
+                fp.write(" " * indent*(depth+1) + f"{json.dumps(key)}: ")
+                write(value, depth + 1)
+                if i != len(o.items()) -1:
+                    fp.write(",\n")
+            fp.write("\n" + curr_indent + "}")
+        #If a list
+        elif isinstance(o, list):
+            #If at end of depth and full of non dict/lists, one line
+            if depth >= inline_level or all([not isinstance(x, (dict, list)) for x in o]):
+                fp.write(inline(o))
+                return
+            #Otherwise, write it in multiple lines
+            fp.write("[\n")
+            for i, value in enumerate(o):
+                fp.write(" " * indent*(depth+1))
+                write(value, depth + 1)
+                if i != len(o) -1:
+                    fp.write(",\n")
+            fp.write("\n" + curr_indent + "]")
+        else:
+            fp.write(json.dumps(o))
+    
+    write(obj, 0)
+    fp.write("\n")
+
+
 print("\n\nThis program allows you as a user to add items to the item json file.\n\
 This json file is a database to store information on all items, and may be\n\
 referenced in other json files such as loot tables.\n\
@@ -123,4 +173,4 @@ if save == "Add":
     new_data = dict(sorted(new_data.items()))
     #Save the dict to the JSON file
     with open(item_data_file, "w") as file:
-        json.dump(new_data, file, indent = 4)
+        custom_dump(new_data, file)

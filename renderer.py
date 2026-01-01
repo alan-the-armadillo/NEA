@@ -214,14 +214,14 @@ class PlayerRenderer():
         self.player.renderer = self
 
         self.limbs = {
-            "head" : [anim],
-            "torso" : [anim],
-            "left foot" : [anim],
-            "right foot" : [anim],
-            "left hand" : [anim],
-            "right hand" : [anim],
-            "left melee" : [anim],
-            "right melee" : [anim],
+            "head" : [],
+            "torso" : [],
+            "left foot" : [],
+            "right foot" : [],
+            "left hand" : [],
+            "right hand" : [],
+            "left melee" : [],
+            "right melee" : [],
         }
         # [frame data]
         self.cache = {
@@ -235,13 +235,15 @@ class PlayerRenderer():
             "right melee" : {}
         }
         # [frame_num, clock, time since last frame, single_run]
-        self.anims = {
-            anim : [0, pygame.time.Clock(), 0, False],
-        }
+        self.anims = {}
+
+        self.linked_anims = {}
 
         # [[HittingBox, start_frame, end_frame]]
         self.l_hitboxes = []
         self.r_hitboxes = []
+
+        self.load_anim(anim, False)
 
     def __get_direction_anim_name(self, anim:str):
         """Switches left-right if facing left.
@@ -280,8 +282,22 @@ class PlayerRenderer():
         """Returns the possible key to the anim frame data.
         This should be used both to find values in the cache as well as making the key for new values in the cache.
         """
-        return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
+        if anim not in self.linked_anims.keys():
+            return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
+        else:
+            return f"{anim}FRAME{self.anims[self.linked_anims[anim]][0]}{["left","right"][int(self.player.direction)]}"
     
+    def __get_frame_data(self, anim, limb):
+        #Get relevant animation and limb (just anim and limb_name if right, otherwise gets counterpart)
+        new_anim = self.__get_direction_anim_name(anim)
+        new_limb = self.__get_direction_limb_name(limb)
+        #Get frame data
+        if anim not in self.linked_anims.keys():
+            return PlayerRenderer.animation_data[new_anim]["animation"][new_limb][self.anims[anim][0]]
+        else:
+            return PlayerRenderer.animation_data[new_anim]["animation"][new_limb][self.anims[self.linked_anims[anim]][0]]
+
+
     def load_hitbox_data(self, weapon, side):
         return weapon.hitboxes["anim0"][side]
 
@@ -329,16 +345,34 @@ class PlayerRenderer():
         HittingBox.all = new_hitboxes
 
 
-    def load_anim(self, anim:str, single_run:bool, insert_index=0):
+    def load_anim(self, anim:str, single_run:bool, insert_index=0, parent = None):
         """Loads in an animation for all applicable limbs.
         """
         anim_data = PlayerRenderer.animation_data[anim]
-        self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
-        for limb_name in anim_data:
-            if limb_name in self.player.inventory and self.player.inventory[limb_name]:
-                self.limbs[limb_name].insert(insert_index, anim)
+        if not parent:
+            self.anims.update({anim: [0,pygame.time.Clock(), 0, single_run]})
+            for limb_name in anim_data["animation"]:
+                if limb_name in self.player.inventory and self.player.inventory[limb_name]:
+                    post_link = False
+                    rel_index = 0
+                    while not post_link:
+                        if len(self.limbs[limb_name]) != 0\
+                        and self.limbs[limb_name][insert_index+rel_index] in self.linked_anims\
+                        and self.limbs[limb_name][insert_index-1+rel_index] in self.linked_anims[self.limbs[limb_name][insert_index]]:
+                            rel_index -= 1
+                        else:
+                            post_link = True
+                    self.limbs[limb_name].insert(insert_index+rel_index, anim)
+        else:
+            self.linked_anims.update({anim:parent})
+            for limb_name in anim_data["animation"]:
+                if limb_name in self.player.inventory and self.player.inventory[limb_name]:
+                    self.limbs[limb_name].insert(insert_index-1, anim)
+        if len(anim_data["children"]) != 0:
+                for child in anim_data["children"]:
+                    self.load_anim(child, single_run, insert_index, anim)
 
-    def unload_anim(self, anim:str):
+    def unload_anim(self, anim:str, child=False):
         """Unloads and animation for all applicable limbs.
         If this results in an animation uncovering from not playing, then it will be reset to frame 0.
         """
@@ -346,33 +380,46 @@ class PlayerRenderer():
         hitboxes = list(filter(lambda h: h["base anim name"]==anim and (h["pos"] == self.anims[anim][0] or h["pos"] == -1), self.l_hitboxes+self.r_hitboxes))
         [HittingBox.all.remove(h["hitbox"]) for h in hitboxes]
 
-        anim_data = PlayerRenderer.animation_data[anim]
-        self.anims.pop(anim)
-        #Test which animations are loaded (playing) currently
-        loaded = []
-        for other_anim in self.anims:
-            loaded.append(any([self.limbs[l][0] == other_anim for l in self.limbs]))
-        #Stop playing current aniamtion
-        for limb_name in anim_data:
-            try:
-                self.limbs[limb_name].remove(anim)
-            except:
-                pass
-        #Test which animations will now be loaded (playing)
-        for i, other_anim in enumerate(self.anims):
-            #If an animation has been loaded due to an animation being unloaded, reset it
-            if any([self.limbs[l][0] == other_anim for l in self.limbs]) and not loaded[i]:
-                self.anims[other_anim][1].tick()
-                self.anims[other_anim][0] = 0
+        if not child:
+            anim_data = PlayerRenderer.animation_data[anim]["animation"]
+            self.anims.pop(anim)
+            #Test which animations are loaded (playing) currently
+            loaded = []
+            for other_anim in self.anims:
+                loaded.append(any([self.limbs[l][0] == other_anim for l in self.limbs]))
+            #Stop playing current aniamtion
+            for limb_name in anim_data:
+                try:
+                    self.limbs[limb_name].remove(anim)
+                except:
+                    pass
+            #Test which animations will now be loaded (playing)
+            for i, other_anim in enumerate(self.anims):
+                #If an animation has been loaded due to an animation being unloaded, reset it
+                if any([self.limbs[l][0] == other_anim for l in self.limbs]) and not loaded[i]:
+                    self.anims[other_anim][1].tick()
+                    self.anims[other_anim][0] = 0
+            unload_children = []
+            for links, anims in self.linked_anims.items():
+                if anims == anim:
+                    unload_children.append(links)
+            [self.unload_anim(u, True) for u in unload_children]
+        else:
+            del self.linked_anims[anim]
+            anim_data = PlayerRenderer.animation_data[anim]["animation"]
+            for limb_name in anim_data:
+                try:
+                    self.limbs[limb_name].remove(anim)
+                except:
+                    pass
+            
+
 
     def load_frame(self, limb_name, anim, player_pos):
         """Loads in object for a frame.
         Returns [relative position (to pos), rotation, sequence, img]."""
-        #Get relevant animation and limb (just anim and limb_name if right, otherwise gets counterpart)
-        new_anim = self.__get_direction_anim_name(anim)
-        new_limb = self.__get_direction_limb_name(limb_name)
         #Get frame data
-        frame_data = PlayerRenderer.animation_data[new_anim][new_limb][self.anims[anim][0]]
+        frame_data = self.__get_frame_data(anim, limb_name)
         #Retrieve data
         relative_pos, rot, seq, vec_rot = frame_data["pos"], frame_data["rot"], frame_data["seq"], frame_data["offset vector rot"]
         #Format and calculate useful data
@@ -418,7 +465,7 @@ class PlayerRenderer():
                     self.anims[animation][0] += 1
                     #If the animation has now ended
                     new_anim = self.__get_direction_anim_name(animation)
-                    if len(PlayerRenderer.animation_data[new_anim][list(PlayerRenderer.animation_data[new_anim].keys())[0]]) == self.anims[animation][0]:
+                    if len(PlayerRenderer.animation_data[new_anim]["animation"][list(PlayerRenderer.animation_data[new_anim]["animation"].keys())[0]]) == self.anims[animation][0]:
                         if self.anims[animation][3]: #Not looping
                             unloads.append(animation)
                         else: #Looping

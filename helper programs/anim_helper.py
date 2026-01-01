@@ -94,7 +94,7 @@ class Frame:
         #Get base frame
         try:
             with open(filename, "r") as f:
-                base = json.load(f)["base"]
+                base = json.load(f)["base"]["animation"]
         except:
             raise LookupError (f"No 'base' frame found in {filename}.")
         #New objects list
@@ -286,7 +286,8 @@ sprites = {
     "left hand" : ["debug_hand.png"],
     "right hand" : ["debug_hand.png"],
     "left melee" : ["debug_melee.png", [4,13]],
-    "right melee" : ["debug_melee.png", [4,13]]
+    "right melee" : ["debug_melee.png", [4,13]],
+    "weapon" : ["hammer.png"]
 }
 
 #Store sprite, pos, rect
@@ -296,8 +297,7 @@ objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
            Sprite("right foot", sprites["right foot"][0], [30*SCALE,5*SCALE], 0), 
            Sprite("left hand", sprites["left hand"][0], [40*SCALE, 0], 0), 
            Sprite("right hand", sprites["right hand"][0], [40*SCALE, 5*SCALE], 0),
-           Sprite("left melee", sprites["left melee"][0], [50*SCALE, 0], 0),
-           Sprite("right melee", sprites["right melee"][0], [50*SCALE, 20*SCALE], 0)
+           Sprite("weapon", sprites["weapon"][0], [50*SCALE, 0], 0),
            ]
 
 
@@ -423,7 +423,7 @@ def load_anim():
     """
     def load_sprites(anim_data:dict, frame_num:int):
         """Loads all sprite data for a specific frame."""
-        loading_objects = [None for _ in range(len(anim_data))]
+        loading_objects = [None for _ in range(len(anim_data)+10)]
         width, height = display.get_width()/2, display.get_height()/2
         for sprite_data in list(anim_data.items()):
             name, data = sprite_data
@@ -487,7 +487,7 @@ def load_anim():
                     if fill_in == "y":
                         for frame in frames:
                             #NEED TO CONSIDER SEQUENCE NUMBERS HERE ##########################################<-------------------------------------------------------------------------------------
-                            frame.objects = frame.objects + unloaded_objects
+                            frame.objects = frame.objects + [copy(u) for  u in unloaded_objects]
                     current_frame = frames[0]
                     frames = frames[1:]
                     current_frame.render()
@@ -653,7 +653,9 @@ def save():
     for obj_name in list(save_data.keys()):
         save_data[obj_name] = save_data[obj_name][::-1]
 
-    save_data = {anim_name:{"parent":parent, "animation":save_data}}
+    save_data = {anim_name:{"children":[], "animation":save_data}}
+    if parent:
+        data[parent]["children"].append(anim_name)
 
     #Add new data to old data
     data.update(save_data)
@@ -992,8 +994,8 @@ while running:
         elif child:
             child.draw_highlight(overlay, int(SCALE), [255,0,255])
         #Highlight
-        shortest_distance = 10000
-        closest = None
+        shortest_distance = []
+        closest = []
         current_frame.draw(display)
         #Draw hitboxes
         for hitbox in hitboxes:
@@ -1012,16 +1014,26 @@ while running:
         for sprite in current_frame.objects+hitboxes:
             sprite.highlighted = False
             dist_to_mouse = sprite.distance_to(mouse_pos)
-            if dist_to_mouse < shortest_distance or closest == None:
-                shortest_distance = dist_to_mouse
-                closest = sprite
-        try:
-            img, pos = closest.get_full_rot_data()
+            added = False
+            for i in range(len(closest)):
+                if dist_to_mouse < shortest_distance[i]:
+                    shortest_distance.insert(i, dist_to_mouse)
+                    closest.insert(i, sprite)
+                    added = True
+                    break
+            if not added:
+                shortest_distance.append(dist_to_mouse)
+                closest.append(sprite)
+        
+        if len(closest) != 0:
+            img, pos = closest[0].get_full_rot_data()
+            i = 0
+            while (not img.get_rect(topleft=pos).collidepoint(mouse_pos)) and i < len(closest)-1:
+                i += 1
+                img,pos = closest[i].get_full_rot_data()
             if img.get_rect(topleft=pos).collidepoint(mouse_pos):
-                closest.draw_highlight(overlay, int(SCALE/2), [255,255,0])
-                closest.highlighted = True
-        except:
-            pass
+                closest[i].draw_highlight(overlay, int(SCALE/2), [255,255,0])
+                closest[i].highlighted = True
         
         #Overlay
         if render_text:
