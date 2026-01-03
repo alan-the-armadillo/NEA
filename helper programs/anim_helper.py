@@ -285,9 +285,8 @@ sprites = {
     "right foot" : ["debug_foot.png", [3,4]],
     "left hand" : ["debug_hand.png"],
     "right hand" : ["debug_hand.png"],
-    "left melee" : ["debug_melee.png", [4,13]],
+    "left melee" : ["hammer.png"],#["debug_melee.png", [4,13]],
     "right melee" : ["debug_melee.png", [4,13]],
-    "weapon" : ["hammer.png"]
 }
 
 #Store sprite, pos, rect
@@ -297,7 +296,7 @@ objects = [Sprite("torso", sprites["torso"][0], [0,0], 0),
            Sprite("right foot", sprites["right foot"][0], [30*SCALE,5*SCALE], 0), 
            Sprite("left hand", sprites["left hand"][0], [40*SCALE, 0], 0), 
            Sprite("right hand", sprites["right hand"][0], [40*SCALE, 5*SCALE], 0),
-           Sprite("weapon", sprites["weapon"][0], [50*SCALE, 0], 0),
+           Sprite("left melee", sprites["left melee"][0], [50*SCALE, 0], 0),
            ]
 
 
@@ -512,7 +511,7 @@ def blit_frame_num(surface, color):
         text = f"{len(frames)-editing_frame_index}/{len(frames)}"
     else:
         text = f"{len(frames)+1}/{len(frames)+1}"
-    surface.blit(font.render(text, True, color), [0,0])
+    surface.blit(font.render(text+f" (will save first {len(frames)} frames)", True, color), [0,0])
 
 def draw_child_relations(surface):
     for i, child_parent_names in enumerate([[objects.name, objects.parent] for objects in current_frame.objects]):
@@ -714,6 +713,23 @@ def flip_animation_data():
         frame.render()    
     onion_skin(onion_layer)
 
+def true_flip_anim_data():
+    base_frame = frames[-1]
+    base_torso = list(filter(lambda o: o.name == "torso", base_frame.objects))[0]
+    torso_x = base_torso.get_rect().centerx
+    for frame in [current_frame]+frames:
+        copies = []
+        for limb in frame.objects:
+            new_pos = [2*torso_x-limb.get_rect().right, limb.get_rect().top]
+            limb_copy = copy(limb)
+            limb_copy.pos = new_pos
+            limb_copy.rot = -limb.rot
+            copies.append(limb_copy)
+        frame.objects = copies
+        frame.render()    
+    onion_skin(onion_layer)
+
+
 def get_hitbox_info(hitbox:Sprite):
     rect = hitbox.get_rect()
     tl = rect.center
@@ -864,7 +880,11 @@ while running:
             #Flip animation data
             elif event.key == pygame.K_f and keys[pygame.K_LCTRL]:
                 pygame.display.quit()
-                flip_animation_data()
+                true_flip = input("Would you like to true flip this animation ['y' to true flip]:\t") == "y"
+                if true_flip:
+                    true_flip_anim_data()
+                else:
+                    flip_animation_data()
                 make_display()
             #Display hitbox info
             elif event.key == pygame.K_h and keys[pygame.K_LCTRL] and keys[pygame.K_LSHIFT]:

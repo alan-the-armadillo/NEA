@@ -35,6 +35,10 @@
         "base damage": 3.0,
         "weapon type": "Melee",
         "slot size": "1",
+        "equiv_anims" : {
+            "idle" : "sword idle",
+            "walk" : "sword walk"
+        },
         "hitboxes": {
             "anim0": {
                 "name": "sword slash",
@@ -69,6 +73,10 @@
         "base damage": 10.0,
         "weapon type": "Melee",
         "slot size": "2",
+        "equiv_anims" : {
+            "idle" : "hammer idle",
+            "walk" : "hammer walk"
+        },
         "hitboxes": {
             "anim0": {
                 "name": "hammer swipe",

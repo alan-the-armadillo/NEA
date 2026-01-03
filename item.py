@@ -23,4 +23,5 @@ class Weapon(Item):
         self.slot_size = self.data["slot size"]
         self.base_damage = self.data["base damage"]
         self.weapon_type = self.data["weapon type"]
+        self.equiv_anim = self.data["equiv_anims"]
         self.hitboxes = self.data["hitboxes"]

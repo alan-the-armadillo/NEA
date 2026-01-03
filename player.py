@@ -22,8 +22,8 @@ class Player(Entity):
             "right hand" : Limb("l2"),
             "left foot" : Limb("l3"),
             "right foot" : Limb("l3"),
-            "left melee" : Weapon("w0"),
-            "right melee" : Weapon("w0")
+            "left melee" : Weapon("w3"),
+            "right melee" : None
         }
     
     def update_position(self, new_pos):
