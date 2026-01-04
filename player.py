@@ -1,5 +1,3 @@
-from typing import overload
-
 from hitbox import *
 from entity import Entity
 from item import Limb, Weapon
@@ -15,7 +13,7 @@ class Player(Entity):
         self.ATK = 5
         self.SPD = 5
 
-        self.inventory = { ###########WORK ON INVENTORY AND ITEMS NEXT (stats will also be worked on in the process)
+        self.inventory = {
             "torso" : Limb("l0"),
             "head" : Limb("l1"),
             "left hand" : Limb("l2"),
@@ -52,7 +50,6 @@ class Player(Entity):
             self.renderer.load_anim("walk", False, insert_index=-1)
 
     def move(self):
-        """Moves player collider"""
         new_pos = super().move(self.SPD)
         self.interactor.rect.center = new_pos
         self.interactor.get_closest_interactor()

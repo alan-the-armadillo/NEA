@@ -285,7 +285,7 @@ sprites = {
     "right foot" : ["debug_foot.png", [3,4]],
     "left hand" : ["debug_hand.png"],
     "right hand" : ["debug_hand.png"],
-    "left melee" : ["hammer.png"],#["debug_melee.png", [4,13]],
+    "left melee" : ["hammer.png"],
     "right melee" : ["debug_melee.png", [4,13]],
 }
 
@@ -485,7 +485,6 @@ def load_anim():
                     frames = [Frame(pygame.Surface(display.get_size(), pygame.SRCALPHA), load_sprites(anim_data, i)) for i in range(len(list(anim_data.values())[0]))][::-1]
                     if fill_in == "y":
                         for frame in frames:
-                            #NEED TO CONSIDER SEQUENCE NUMBERS HERE ##########################################<-------------------------------------------------------------------------------------
                             frame.objects = frame.objects + [copy(u) for  u in unloaded_objects]
                     current_frame = frames[0]
                     frames = frames[1:]
@@ -627,7 +626,7 @@ def save():
     #Format frame data (ie lists of sprite data) into full anim data
     save_data = {}
 
-    #Take origin as position of torso in first frame. <---------------------------------------------------Need to change so user sets
+    #Take origin as position of torso in first frame
     torso = list(filter(lambda o: o.name == "torso",frames[0].objects))[0]
     origin = get_obj_rotated_point(torso)
 
@@ -1067,12 +1066,3 @@ while running:
     pygame.display.update()
 
 pygame.display.quit()
-
-
-"""
-You could, at some point, make extra anim objects like smear frames but this should be a final touch.
-
-Possibility for other helpful changes such as objects retaining motion through frames, but would be hard to implement now.
-Implement this animation system into the rest of the game:
- - have the animations referenced wherever necessary in weapon files, but also specified somewhere else for constant anims e.g. walking
-"""

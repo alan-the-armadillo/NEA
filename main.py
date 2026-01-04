@@ -13,7 +13,7 @@ class Game:
         self.current_pos = [self.map.center[0], self.map.center[1]]
         #Temporary section to set player's position to within the room
         self.player = Player([0,0])
-        self.renderer = Renderer("fullscreen",self.player)#([16*102, 9*102])
+        self.renderer = Renderer("fullscreen",self.player)
         self.test_run()
         curr_room = self.map.rooms[self.current_pos[0]][self.current_pos[1]]
         door = curr_room.door_interactors[0]
@@ -66,8 +66,7 @@ def get_player():
 with open("controls.json", "r") as file:
     controls = json.load(file)
 
-wild = False
-
+#Main loop
 last_update = time.time()
 clock = pygame.time.Clock()
 running = True
@@ -86,15 +85,6 @@ while running:
                 g.player.add_to_motion_vector([-1,0])
             elif event.key == controls["esc"]:
                 running = False
-            elif event.key == controls["prtscr"]:
-                g.renderer.screenshot()
-            #ANIM TEST KEYS
-            elif event.key == pygame.K_b:
-                wild = not wild
-                if wild:
-                    g.renderer.player.renderer.load_anim("wild", False)
-                else:
-                    g.renderer.player.renderer.unload_anim("wild")
             elif event.key == pygame.K_g:
                 g.renderer.player.renderer.begin_attack_anim("left", True)
             elif event.key == pygame.K_f:
@@ -110,10 +100,7 @@ while running:
                 g.player.add_to_motion_vector([1,0])
             elif event.key == controls["interact"]:
                 if g.player.interactor.closest_interactor:
-                    g.solve_interaction(g.player, g.player.interactor.closest_interactor) #############Deal with this somehow (door has no input on what should happen, this is map level)
-                                                               #############Could involve a main method in game that solves interactions, where it actually just gets the class
-                                                               #############of the interactor, no interact() method required. It is then solved by the main game since
-                                                               #############solving the interaction is not an Interactor level process.
+                    g.solve_interaction(g.player, g.player.interactor.closest_interactor)
     
     g.player.move()
     Enemy.behave_all()

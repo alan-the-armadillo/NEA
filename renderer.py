@@ -29,26 +29,12 @@ class Renderer:
         self.world = pygame.Surface(size)
         self.world_fg = pygame.Surface(size)
         #Transparent layer to make it an overlay
-        #The final version of the HUD will use images, so transparent layers should not be an issue
         self.map = pygame.Surface([self.display.get_height()/3, self.display.get_height()/3])
         self.overlay = pygame.Surface(self.display.get_size(), pygame.SRCALPHA)
         self.center = pygame.Vector2(self.display.get_rect().center)
 
         self.player = player
         PlayerRenderer(player, "idle")
-
-        self.screenshot_life = 0
-        self.screenshot_clock = pygame.time.Clock()
-    
-    def screenshot(self):
-        if not os.path.isdir("screenshots"):
-            os.mkdir("screenshots")
-        now = datetime.now()
-        screenshot_name = "screenshots/"+str(datetime.date(now))+"_"+str(now.hour)+"."+str(now.minute)+"."+str(now.second)+".png"
-        pygame.image.save(self.display, screenshot_name)
-        self.screenshot_life = 3
-        self.screenshot_clock.tick() 
-        
     
     def debug_render_map(self, map:Map, current_pos:list):
         """Draws the map, including doors and highlighting the room the player is currently in."""
@@ -117,41 +103,12 @@ class Renderer:
 
     
     def debug_render_overlay(self, fps:float):
-        self.overlay.fill(0)
-        text = [str(round(fps)),
-                f"HITTINGBOX    : {len(HittingBox.all)}",
-                f"RENDERER LEFT : {len(self.player.renderer.l_hitboxes)}",
-                f"RENDERER RIGHT: {len(self.player.renderer.r_hitboxes)}",
-                ]
-        for i,string in enumerate(text):
-            self.overlay.blit(font.render(string, True, "white"), [100,100+i*font_size])
-        new_base = 100+(len(text)+1)*font_size
-
-        self.overlay.blit(font.render("LEFT HITBOXES: ", True, "white"), [100, new_base-font_size])
-        for i, h in enumerate(self.player.renderer.l_hitboxes):
-            color = "red" if h["hitbox"] in HittingBox.all else "white"
-            self.overlay.blit(font.render(str((h["base anim name"], h["start"], h["end"], h["pos"], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h["weapon"])], h["side"])), True, color), [100, new_base+i*font_size])
-        new_base += (len(self.player.renderer.l_hitboxes)+1)*font_size
-
-        self.overlay.blit(font.render("RIGHT HITBOXES: ", True, "white"), [100, new_base-font_size])
-        for i, h in enumerate(self.player.renderer.r_hitboxes):
-            color = "red" if h["hitbox"] in HittingBox.all else "white"
-            self.overlay.blit(font.render(str((h["base anim name"], h["start"], h["end"], h["pos"], list(self.player.inventory.keys())[list(self.player.inventory.values()).index(h["weapon"])], h["side"])), True, color), [100, new_base+i*font_size])
-        
-
-        #self.overlay.blit(font.render(left_h_text, True, left_col), [100, 100+len(text)*font_size])
-        #self.overlay.blit(font.render(right_h_text, True, right_col), [100, 100+(len(text)+1)*font_size])
         w = self.overlay.get_width()
         self.overlay.blit(self.map, [w-self.map.get_width(),0])
 
         x_end = 300*round(self.player.HP/self.player.max_HP)
         pygame.draw.rect(self.overlay, [255,0,0], pygame.Rect([0,0], [x_end,50]))
         pygame.draw.rect(self.overlay, [255,255,255], pygame.Rect([0,0], [x_end,50]), 5)
-
-        if self.screenshot_life > 0:
-            self.overlay.blit(font.render("Screenshot taken", True, [255,255,255]), [0 , self.overlay.get_height()-font.get_height()])
-            self.screenshot_life -= self.screenshot_clock.get_time()/1000
-            self.screenshot_clock.tick()
 
 
     def debug_render_frame(self, fps:float):
@@ -169,36 +126,15 @@ class Renderer:
             rect = player_interactor.closest_interactor.rect
             pygame.draw.rect(self.world_fg, [255,255,255], pygame.Rect([rect.left-5, rect.top-5], [rect.width+10, rect.height+10]), 5)
         self.display.blit(self.world_fg, self.center - player_collider.rect.center)
-        #Draw player interactor
-        #pygame.draw.rect(self.display, [50,50,50], pygame.Rect(self.center - player_interactor.hdim, player_interactor.rect.size), 5)
-        #Draw player collider
-        #pygame.draw.rect(self.display, [180,130,200], pygame.Rect(self.center - player_collider.hdim, player_collider.rect.size))
         
         self.player.renderer.next_frame()
         self.player.renderer.render_frame(self.display, self.center)
         
-        #Draw the map, fps and screenshot acknowledgement
+        #Draw overlay
         self.debug_render_overlay(fps)
         self.display.blit(self.overlay, [0,0])
         #Update the frame
         pygame.display.update()
-
-""" ## In order of urgency ##
-Need to fix animation layer rendering. The problem seems to be that layers are in the wrong order if the limb has a different
-anim to the rest of the body. This could be fixed by taking the median limb as the center and inserting the other limbs of the animation around it,
-such that the median limb is at the same sequence as it was before the new animation was pushed to the stack, and the other limbs of the
-new animation move to be the same offset from the median limb as in the new animation. e.g. new animation with sequencing of lhand, torso, rhand.
-Torso is left at the sequence it is at, say 3, lhand moves to the layer below torso (2) and r hand moves to the layer above torso (4).
-
-Need to implement variable usage into renderer size. At the moment, it is hard set to [2400,1350] due to the room dimensions and collider size.
-If either was changed, the screen would render bits weird (either unnecessary space or drawn off screen).
-
-Currently have implemented feet-level hitbox, but this note is worth keeping:
-Need to update player hitbox. Either use per-sprite hitboxes (may be a very bad idea) or just make a larger player hitbox.
-OR! put the collision hitbox at the player's feet/blit the player such that the feet are at the bottom. This will either require a total
-system change to better the efficiency so it saves limbs in relation to the base feet position, or ignore efficiency and go for current model
-(would prefer efficiency due to how much this system is going to work during gameplay).
-"""
 
 class PlayerRenderer():
     SCALE = 5
@@ -244,16 +180,7 @@ class PlayerRenderer():
         self.r_hitboxes = []
 
         self.load_anim(anim, False)
-        """print("\n\n\n")
-        print("\n\n\n")
-        print(f"self.limbs: {self.limbs}")
-        print(f"self.cache: {self.cache}")
-        print(f"self.anims: {self.anims}")
-        print(f"self.linked_anims: {self.linked_anims}")
-        print("\n\n\n")
-        print("\n\n\n")"""#########################################################################################################################
-        #raise Exception
-
+    
     def __get_direction_anim_name(self, anim:str):
         """Switches left-right if facing left.
         Returns the anim name fixed for current direction.
@@ -292,8 +219,6 @@ class PlayerRenderer():
         This should be used both to find values in the cache as well as making the key for new values in the cache.
         """
         if anim not in self.linked_anims.keys():
-            """print("\n\n")
-            print(anim, self.anims)"""#########################################################################################################################
             return f"{anim}FRAME{self.anims[anim][0]}{["left","right"][int(self.player.direction)]}"
         else:
             return f"{anim}FRAME{self.anims[self.linked_anims[anim]][0]}{["left","right"][int(self.player.direction)]}"
@@ -306,18 +231,6 @@ class PlayerRenderer():
         if anim not in self.linked_anims.keys():
             return PlayerRenderer.animation_data[new_anim]["animation"][new_limb][self.anims[anim][0]]
         else:
-            """print("\n\n")
-            print(anim)
-            print(PlayerRenderer.animation_data[anim]["animation"].keys())
-            print(new_anim)
-            print(PlayerRenderer.animation_data[new_anim]["animation"].keys())
-            print(limb)
-            print(new_limb)
-            print(PlayerRenderer.animation_data[new_anim]["animation"][new_limb])
-            print("\n")
-            print(self.anims)
-            print(self.linked_anims)
-            print(anim)"""##################################################################################################################################
             return PlayerRenderer.animation_data[new_anim]["animation"][new_limb][self.anims[self.linked_anims[anim]][0]]
 
     def get_all_linked_anims(self, anim):
@@ -385,7 +298,6 @@ class PlayerRenderer():
                     post_link = False
                     rel_index = 0
                     while not post_link:
-                        print(insert_index)
                         if len(self.limbs[limb_name]) > 1\
                         and not (self.limbs[limb_name][insert_index+rel_index] in self.linked_anims.keys()\
                         and self.limbs[limb_name][insert_index+1+rel_index] == self.linked_anims[self.limbs[limb_name][insert_index+rel_index]]):
@@ -396,22 +308,18 @@ class PlayerRenderer():
         else:
             self.linked_anims.update({anim:parent})
             for limb_name in anim_data["animation"]:
-                """print("limb_name:",limb_name)
-                print(self.player.inventory)"""#########################################################################################################################
                 if limb_name in self.player.inventory and self.player.inventory[limb_name]:
                     self.limbs[limb_name].insert(insert_index, anim)
                     rel_index = 0
         if len(anim_data["children"]) != 0:
                 for child in anim_data["children"]:
                     for weapon in ["left melee", "right melee"]:
-                        """print("\t",weapon)"""#########################################################################################################################
                         try:
                             if (anim,child) in list(self.player.inventory[weapon].equiv_anim.items()) and child not in self.anims.keys():
-                                """print("Success")"""#########################################################################################################################
+                                
                                 self.load_anim(child, single_run, insert_index+rel_index-1, anim)
-                            """print("Not failure")"""#########################################################################################################################
-                        except AttributeError as e:
-                            """print("FAILED:",e)"""#########################################################################################################################
+                        except AttributeError:
+                            pass
 
     def unload_anim(self, anim:str, child=False):
         """Unloads and animation for all applicable limbs.
@@ -490,18 +398,12 @@ class PlayerRenderer():
         return [final_pos, rotated_img, seq]
     
     def next_frame(self):
-        """DOES NOT YET ALLOW FOR SPRITES WITH THEIR OWN SPRITE SHEETS.
-        Checks to see if limb animations should be progressed and, if so, progresses them.
+        """Checks to see if limb animations should be progressed and, if so, progresses them.
         """
         unloads = []
         #Loop through animations:
         for animation in self.anims:
             #If showing this animation:
-            #print("Animation: ", animation)######################################################################################
-            
-            """for l in self.limbs:
-                print(l, self.limbs[l])
-            print("ANIMATIONS ######: ",self.anims)"""#########################################################################################################################
             if any([len(self.limbs[l]) != 0 and animation==self.limbs[l][0] for l in self.limbs]):
                 #Tick clock
                 self.anims[animation][2] += self.anims[animation][1].tick()
@@ -529,15 +431,7 @@ class PlayerRenderer():
                         [HittingBox.all.append(hitbox["hitbox"]) for hitbox in hitboxes]
                         #Unload relevant hitboxes
                         hitboxes = list(filter(lambda h: h["base anim name"]+" "+real_side==animation and h["end"]==self.anims[animation][0] and h["hitbox"] in HittingBox.all, side_hitboxes))
-                        ############################################## SOMETHING WRONG HERE (error upon turning back left during animation)
-                        try:
-                            [HittingBox.all.remove(hitbox["hitbox"]) for hitbox in hitboxes]
-                        except Exception as e:
-                            """print(HittingBox.all)
-                            print([h["hitbox"] for h in hitboxes])
-                            print([h["hitbox"] for h in side_hitboxes])
-                            print([h["hitbox"] for h in hitboxes])"""
-                            raise e
+                        [HittingBox.all.remove(hitbox["hitbox"]) for hitbox in hitboxes]
         #Unload any animations flagged for unloading.
         [self.unload_anim(animation) for animation in unloads]
 
@@ -558,11 +452,9 @@ class PlayerRenderer():
                 rel_pos = [-rel_pos[0], rel_pos[1]]
             true_pos = [player_pos[0]+rel_pos[0]*self.SCALE+offset[0], player_pos[1]+rel_pos[1]*self.SCALE+offset[1]]
             hitbox.rect.center = true_pos
-            pygame.draw.rect(surface, "red", hitbox.rect)
 
         for limb in self.limbs:
             try:
-                """print(limb, self.limbs)"""#########################################################################################################################
                 animation = self.limbs[limb][0]
                 #Loads if cached
                 if self.__get_cache_frame_name(animation) in self.cache[limb]:

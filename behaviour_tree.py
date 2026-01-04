@@ -2,25 +2,10 @@ import json
 from random import uniform
 from hitbox import Hitbox
 
-"""Explanation for tricky bits.
-Priority nodes store the last node they were on such that they can return to the specific index when it checks that child node.
-The top PSEQ node should be used to note checks to be performed before any ACT.
-To create a set of ACTs that should be performed sequentially, create a SEQ node under this PSEQ node, after the PSEL nodes for condition checks.
-
-Each one of these ACTs under the SEQ node should return True.
-By returning True, the SEQ node knows to move on like with a True condition, but the PSEQ node remembers the specific index of the SEQ node and stops the update cycle
-because the SEQ returned an index (if the ACT node is not the right-most node, it returns True if the right-most node) like a normal ACT node.
-
-If the entity takes damage, then it should instantly react rather than wait for the next update cycle (better response times). One option would be manual calling of the
-update cycle, which is possible, but an option tht avoids a lot of boolean flags would be to reset the tree and set a pause value and the behaviour of the entity 
-when taking damage (i.e at the same time that HP is lowered).
-"""
-
 GAME = None #Will be set by the main file to the main game object
 
 class Behaviours:
     def no_damage(entity):
-        """print("no damage")"""
         return True
 
     def wait(entity, time):
@@ -28,13 +13,11 @@ class Behaviours:
         if time == "use object time":
             entity.AI.pause = entity.data["wait_time"]
         entity.AI.pause = time
-        """print(f"wait {time}")"""
         return True
 
     def distance_to_player_gt(entity, smaller_dist):
         pos1, pos2 = entity.collider.rect.center, GAME.player.collider.rect.center
         distance = Hitbox.get_distance(pos1, pos2)
-        """print(distance)"""
         return distance > smaller_dist
 
     def move_from_player(entity, time, speed_mult):
@@ -46,11 +29,9 @@ class Behaviours:
         entity.behaviour = moving_behaviour
         #Update entity behaviour tree pause time
         entity.AI.pause = time
-        """print(f"move from player {time}")"""
         return []
 
     def attack(entity, attack_id):
-        """print(f"attack {attack_id}")"""
         return True
 
     def wander(entity, time, speed_mult):
@@ -64,7 +45,6 @@ class Behaviours:
         entity.behaviour = moving_behaviour
         #Update entity behaviour tree pause time
         entity.AI.pause = time
-        """print(f"wander {time}")"""
         return True
 
     translator = {
@@ -87,7 +67,6 @@ class BehaviourTree:
             return 1 + self.get_relative_left_branch_len(parent_node[1][0])
 
     def get_relative_left_leaf_index(self, parent_node):
-        #-1 as to not include the current node
         return [0 for _ in range(self.get_relative_left_branch_len(parent_node))]
 
     def parse_node_data(self, node_data):
@@ -122,7 +101,6 @@ class BehaviourTree:
         self.index = self.initial_index.copy()
         self.last_node = [None, None]
         self.pause = 0
-        """print(self.tree, self.initial_index, "\n")"""
 
     def resolve_SEQ(self, node, relative_index):
         """Resolves child node.
@@ -233,7 +211,6 @@ class BehaviourTree:
         """
         Arguments:
             relative_index (list): list of indexes of children that lead from this node to the leaf node."""
-        """print(node[0], end="--|")"""
         node_type = node[0]
         return BehaviourTree.node_resolvers[node_type](self, node, relative_index)
 

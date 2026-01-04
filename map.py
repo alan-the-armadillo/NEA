@@ -13,7 +13,6 @@ class Map:
             self.center = center
         self.size = size
         self.rooms: List[List[Optional[Room]]] = [[None for _ in range(size)] for _ in range(size)]
-        #self.rooms[self.center[0]][self.center[1]] = StaircaseRoom(center, self.center, self.size)
 
     def create_room(self, position:Tuple[int, int], x_scale, y_scale):
         new_room = Room(position, self.center, self.size, [self.rooms[position[0]+v[0]][position[1]+v[1]]
@@ -21,10 +20,10 @@ class Map:
                                                                 and 0 <= position[1]+v[1] < self.size)
                                                             else Room.edge_string
                                                             for v in Map.room_neighbor_vectors])
-        new_room.generate_grid([16,9],[4,4])  ############################################################################    MAGIC NUMBERS (should change with self.size [which relates to the level])
+        new_room.generate_grid([16,9],[4,4])
         new_room.generate_doors()
         new_room.generate_hitboxes(x_scale, y_scale)
-        new_room.generate_enemies(x_scale, y_scale)###################################
+        new_room.generate_enemies(x_scale, y_scale)
         self.rooms[position[0]][position[1]] = new_room
     
     def load_room(self, position:Tuple[int, int], x_scale, y_scale):
@@ -36,7 +35,7 @@ class Map:
         room = self.rooms[x][y]
         Collider.all = room.wall_colliders.copy()
         Interactor.all = [d_int for d_int in room.door_interactors if d_int != None]
-        Enemy.all = room.enemies.copy()############################################################################
+        Enemy.all = room.enemies.copy()
 
         return room
     
@@ -202,51 +201,6 @@ class Room:
 
         self.doors = doors
 
-
-    #Method for generating colliders that merges colliders together if adjacent
-    #Removed since it seemed unnecessary
-    #May be implemented and tested later if framerate issues pop up
-    """
-    def generate_colliders(self, graphical_size:Tuple[int|float, int|float]):
-        self.wall_colliders = []
-        x_scale = graphical_size[0]/self.grid_size_x
-        y_scale = graphical_size[1]/self.grid_size_y
-        #Generate information for the colliders:
-        for i in range(self.grid_size_x):
-            self.wall_colliders.append([])
-            for j in range(self.grid_size_y):
-                #Will not generate wall colliders if the wall is unreachable (ie it is surrounded by walls)
-                if not self.grid[i][j] and Room.get_empty_neighbors(self.grid, self.grid_size_x, self.grid_size_y, i, j) != Room.get_neighbors(self.grid_size_x, self.grid_size_y, i,j):
-                    self.wall_colliders[i].append([[i*x_scale, j*y_scale], [x_scale, y_scale]])
-                else:
-                    self.wall_colliders[i].append(None)
-        
-        #Merge wall colliders together if horizontally connected
-        #Merge vertically:
-        for column in self.wall_colliders:
-            for i in range(len(column)-1, 0, -1):
-                if column[i-1] != None and column[i] != None:
-                    if column[i-1][0][0] == column[i][0][0] and column[i-1][0][1] == column[i][0][1]-y_scale:
-                        column[i-1][1][1] += column[i][1][1]
-                        column[i] = None
-        #Swap rows and columns:
-        self.wall_colliders = [list(x) for x in zip(*self.wall_colliders)]
-        #Merge horizontally:
-        for row in self.wall_colliders:
-            for i in range(len(row)-1, 0, -1):
-                if row[i-1] != None and row[i] != None:
-                    if row[i-1][0][1] == row[i][0][1] and row[i-1][0][0] == row[i][0][0]-x_scale and row[i-1][1][1] == row[i][1][1]:
-                        row[i-1][1][0] += row[i][1][0]
-                        del row[i]
-    
-        new_colliders = []
-        for column in self.wall_colliders:
-            for i, w in enumerate(column):
-                if w != None:
-                    new_colliders.append(WallCollider(w[0], w[1]))
-        
-        self.wall_colliders = new_colliders
-    """
     def generate_wall_colliders(self, x_scale, y_scale):
         self.wall_colliders = []
         for i in range(self.grid_size_x):
@@ -262,14 +216,10 @@ class Room:
         self.generate_wall_colliders(x_scale, y_scale)
         self.generate_door_interactors(x_scale, y_scale)
     
-    def generate_enemies(self, x_scale, y_scale): ###############MUST BE CHANGED TO ALLOW FOR LEVEL SCALING AND SUCH
+    def generate_enemies(self, x_scale, y_scale):
         self.enemies = []
         for i in range(self.grid_size_x):
             for j in range(self.grid_size_y):
                 if self.grid[i][j]:
                     if randint(1,20) == 1:
                         self.enemies.append(Enemy("e1", [i*x_scale, j*y_scale]))
-
-
-class StaircaseRoom(Room):
-    pass

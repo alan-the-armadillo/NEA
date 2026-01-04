@@ -5,8 +5,6 @@ class Hitbox:
         self.dim = pygame.Vector2(dim)
         self.rect = pygame.Rect(pos, self.dim)
         self.hdim = self.dim/2
-        #from random import randint #################################################################<-debug lines
-        #self.c = [randint(100,255),randint(100,255),randint(100,255)] ##############################<-
     @staticmethod
     def get_distance(pos1, pos2):
         return ((pos1[0]-pos2[0])**2 + (pos1[1]-pos2[1])**2)**0.5
