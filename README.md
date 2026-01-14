@@ -1,6 +1,7 @@
 # GRAFTED - NEA PROJECT
 
 A dungeon-crawler roguelike game created for my CS NEA project.
+It is currently unfinished. The project has now been handed in so further progress is unlikely.
 
 ### Author
 
@@ -15,11 +16,10 @@ You can graft these limbs in place of your own, developing your robot further an
 ## Controls
  - wasd : up, left, down and right respectively
  - e : interact
- - \# : screenshot (screenshots saved to screenshots folder within program folder)
  - escape : close program
 
 ## Current progress
-This project is a work-in-progress, with some core functionality not yet implemented. Planned features include:
+Some core functionality has not yet been implemented. Planned features include:
 
 - animation system
 - items
@@ -34,7 +34,7 @@ There are some helper programs in the helper programs folder.
 The **control setter** is to show the respective integer for each pygame input.
 The **item helper**, while still in development, makes adding items to the main json file much easier.
 The **anim helper**, while still in development, makes creating animations easier.
-The helper programs will not be in the final program folder as user modding is not a goal of my game, and have just been made for my convencience.
+The helper programs will not be in the final program folder as user modding is not a goal of my game, and have just been made for my convenience.
 
 ## Requirements
 
